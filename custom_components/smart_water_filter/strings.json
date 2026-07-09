@@ -17,13 +17,58 @@
   "options": {
     "step": {
       "init": {
-        "title": "Options for Smart Water Filter PRO",
+        "title": "Configure Smart Water Filter PRO",
+        "data": {
+          "action": "Select Action"
+        }
+      },
+      "sensor_leak_settings": {
+        "title": "Configure Sensors & Leak Engine",
         "data": {
           "source_sensor": "Source Sensor Entity",
           "source_type": "Measurement Mode",
-          "pulses_per_liter": "Calibration Factor (pulses/L)"
+          "pulses_per_liter": "Calibration Factor (pulses/L)",
+          "leak_detection_mode": "Leak Detection Profile",
+          "replacement_reason": "Default Reset Reason"
+        }
+      },
+      "add_stage": {
+        "title": "Add Filter Stage",
+        "data": {
+          "preset_type": "Select Preset Type",
+          "name": "Custom Name (Optional for presets)"
+        }
+      },
+      "add_stage_custom": {
+        "title": "Add Custom Filter Stage",
+        "data": {
+          "name": "Stage Name",
+          "capacity": "Volumetric Capacity (liters)",
+          "max_age_days": "Lifespan Limit (days)"
+        }
+      },
+      "remove_stage": {
+        "title": "Remove Filter Stage",
+        "data": {
+          "stage_id": "Select Stage to Remove"
+        }
+      },
+      "edit_stage": {
+        "title": "Select Stage to Edit",
+        "data": {
+          "stage_id": "Select Stage"
+        }
+      },
+      "edit_stage_details": {
+        "title": "Edit Filter Stage Parameters",
+        "data": {
+          "capacity": "Volumetric Capacity (liters)",
+          "max_age_days": "Lifespan Limit (days)"
         }
       }
+    },
+    "abort": {
+      "no_stages": "There are no active filter stages to manage."
     }
   },
   "entity": {
@@ -60,26 +105,6 @@
       "pulses_per_liter": { "name": "Sensor calibration factor" },
       "stage_capacity": { "name": "{stage_name} capacity limit" },
       "stage_max_age": { "name": "{stage_name} lifespan limit" }
-    },
-    "select": {
-      "replacement_reason": {
-        "name": "Replacement reason selection",
-        "state": {
-          "routine": "Routine",
-          "taste": "Taste & Odor",
-          "clogged": "Clogging",
-          "time": "Time Limit"
-        }
-      },
-      "leak_detection_mode": {
-        "name": "Leak detection sensitivity profile",
-        "state": {
-          "standard": "Standard profile",
-          "kitchen_ro": "Kitchen & RO profile",
-          "away": "Away profile (Strict)",
-          "disabled": "Disabled"
-        }
-      }
     }
   }
 }

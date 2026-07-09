@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dynamic Entities**: Generated per-stage telemetry and controls (`sensor.{stage_id}_remaining_liters`, `sensor.{stage_id}_remaining_days`, `sensor.{stage_id}_health_score`, `binary_sensor.{stage_id}_replace_required`, `button.reset_{stage_id}`, `number.{stage_id}_capacity`, `number.{stage_id}_max_age`).
 - **JSON Storage Migrations**: Added v4 to v5 storage migration converting the monolithic `"filter"` database namespace into the root-level list `"stages"` structure.
 - **Translations with Placeholders**: Rewrote translation files supporting `{stage_name}` placeholders.
+- **Unified Options Flow**: Created a dynamic multi-step options flow handler in `config_flow.py` supporting sensor setup, adding filter presets or custom stages, removing stages, and editing stage capacities/lifespans.
 
 ### Changed
 - **Config Flow**: Stripped filter size and capacity inputs from initial configuration flow in favor of per-stage setup.
 - **API Contracts**: Refactored `smart_water_filter.reset_filter` to require a `stage_id`.
+- **Legacy UI Cleanup**: Removed legacy `select.py` and deleted control select entities. Set defaults directly from the options flow to simplify dashboard registry.
 
 ## [4.3.1] - 2026-07-09
 ### Added

@@ -17,13 +17,58 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opcje Smart Water Filter PRO",
+        "title": "Konfiguracja Smart Water Filter PRO",
+        "data": {
+          "action": "Wybierz działanie"
+        }
+      },
+      "sensor_leak_settings": {
+        "title": "Konfiguracja czujników i wycieków",
         "data": {
           "source_sensor": "Encja czujnika źródłowego",
           "source_type": "Tryb pomiaru",
-          "pulses_per_liter": "Współczynnik kalibracji (impulsy/L)"
+          "pulses_per_liter": "Współczynnik kalibracji (impulsy/L)",
+          "leak_detection_mode": "Profil wykrywania wycieków",
+          "replacement_reason": "Domyślny powód resetu"
+        }
+      },
+      "add_stage": {
+        "title": "Dodaj stopień filtracji",
+        "data": {
+          "preset_type": "Wybierz typ wkładu",
+          "name": "Własna nazwa (Opcjonalna dla gotowych wkładów)"
+        }
+      },
+      "add_stage_custom": {
+        "title": "Dodaj własny stopień filtracji",
+        "data": {
+          "name": "Nazwa stopnia",
+          "capacity": "Wydajność w litrach",
+          "max_age_days": "Limit czasu (dni)"
+        }
+      },
+      "remove_stage": {
+        "title": "Usuń stopień filtracji",
+        "data": {
+          "stage_id": "Wybierz stopień do usunięcia"
+        }
+      },
+      "edit_stage": {
+        "title": "Wybierz stopień do edycji",
+        "data": {
+          "stage_id": "Wybierz stopień"
+        }
+      },
+      "edit_stage_details": {
+        "title": "Edytuj parametry stopnia",
+        "data": {
+          "capacity": "Wydajność w litrach",
+          "max_age_days": "Limit czasu (dni)"
         }
       }
+    },
+    "abort": {
+      "no_stages": "Brak aktywnych stopni filtracji do zarządzania."
     }
   },
   "entity": {
@@ -60,26 +105,6 @@
       "pulses_per_liter": { "name": "Współczynnik kalibracji czujnika" },
       "stage_capacity": { "name": "Limit pojemności wkładu {stage_name}" },
       "stage_max_age": { "name": "Limit wieku wkładu {stage_name}" }
-    },
-    "select": {
-      "replacement_reason": {
-        "name": "Powód wymiany wkładu",
-        "state": {
-          "routine": "Rutynowa wymiana",
-          "taste": "Zapach i smak",
-          "clogged": "Zapchanie filtra",
-          "time": "Upływ czasu"
-        }
-      },
-      "leak_detection_mode": {
-        "name": "Profil czułości wykrywania wycieków",
-        "state": {
-          "standard": "Profil standardowy",
-          "kitchen_ro": "Profil kuchenny i RO",
-          "away": "Profil poza domem (Rygorystyczny)",
-          "disabled": "Wyłączony"
-        }
-      }
     }
   }
 }

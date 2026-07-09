@@ -15,24 +15,46 @@ class MockDataUpdateCoordinator:
     def __class_getitem__(cls, item) -> type:
         return cls
 
-    async def async_request_refresh(self) -> None:
+class MockConfigFlow:
+    def __init_subclass__(cls, **kwargs) -> None:
         pass
 
-    def async_set_updated_data(self, data) -> None:
-        self.data = data
+class MockOptionsFlow:
+    def __init__(self, config_entry) -> None:
+        self.config_entry = config_entry
+        self.hass = None
 
-# Mock Home Assistant and voluptuous before importing smart_water_filter
-sys.modules['homeassistant'] = MagicMock()
-sys.modules['homeassistant.config_entries'] = MagicMock()
+    def async_create_entry(self, title, data):
+        return {"type": "create_entry", "title": title, "data": data}
+
+    def async_show_form(self, step_id, data_schema, errors=None):
+        return {"type": "form", "step_id": step_id, "data_schema": data_schema, "errors": errors}
+
+    def async_abort(self, reason):
+        return {"type": "abort", "reason": reason}
+
+# Setup package hierarchy mocks properly
+mock_homeassistant = MagicMock()
+
+mock_entries_module = MagicMock()
+mock_entries_module.ConfigFlow = MockConfigFlow
+mock_entries_module.OptionsFlow = MockOptionsFlow
+mock_homeassistant.config_entries = mock_entries_module
+sys.modules['homeassistant'] = mock_homeassistant
+sys.modules['homeassistant.config_entries'] = mock_entries_module
+
 sys.modules['homeassistant.core'] = MagicMock()
-sys.modules['homeassistant.helpers'] = MagicMock()
-sys.modules['homeassistant.helpers.storage'] = MagicMock()
-sys.modules['homeassistant.helpers.event'] = MagicMock()
 
-# Setup update_coordinator module with real classes
+mock_helpers = MagicMock()
+mock_helpers.storage = MagicMock()
+mock_helpers.event = MagicMock()
 mock_coord_module = MagicMock()
 mock_coord_module.DataUpdateCoordinator = MockDataUpdateCoordinator
 mock_coord_module.UpdateFailed = Exception
+mock_helpers.update_coordinator = mock_coord_module
+sys.modules['homeassistant.helpers'] = mock_helpers
+sys.modules['homeassistant.helpers.storage'] = mock_helpers.storage
+sys.modules['homeassistant.helpers.event'] = mock_helpers.event
 sys.modules['homeassistant.helpers.update_coordinator'] = mock_coord_module
 
 sys.modules['homeassistant.components'] = MagicMock()
@@ -42,6 +64,7 @@ sys.modules['homeassistant.components.button'] = MagicMock()
 sys.modules['homeassistant.components.number'] = MagicMock()
 sys.modules['homeassistant.components.select'] = MagicMock()
 sys.modules['homeassistant.const'] = MagicMock()
+sys.modules['homeassistant.data_entry_flow'] = MagicMock()
 sys.modules['voluptuous'] = MagicMock()
 
 import unittest

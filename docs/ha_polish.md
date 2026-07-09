@@ -26,8 +26,6 @@ These entities bind to the main device node representing the main water line hub
 | `clear_alarm` | Dismiss leak alarm | `button` | - | - | - | Dismisses active latched leak alarm |
 | `smart_water_filter_export_backup` | Export pretty backup | `button` | - | - | - | Compiles and writes JSON backup file |
 | `pulses_per_liter` | Sensor calibration factor | `number` | - | - | - | Modifies flow meter pulse coefficient |
-| `replacement_reason` | Replacement reason selection | `select` | - | - | - | Pre-selects reason for next filter reset |
-| `leak_detection_mode` | Leak detection sensitivity profile | `select` | - | - | - | Configures active leak state thresholds |
 
 ### B. Dynamic Stage-Specific Entities
 
@@ -117,3 +115,27 @@ Directly shifts the leak engine profile.
 
 ### `smart_water_filter.export_history`
 Exports replacement and consumption events to the Home Assistant storage path.
+
+---
+
+## 5. Options Flow Configuration Menu
+
+All configuration management has been unified into a professional Options Flow wizard inside the Home Assistant device configuration settings. The options flow supports the following steps:
+
+1. **Main Selection (`init`)**: Allows selection of which action to perform:
+   - Configure Flow & Leak Settings
+   - Add New Filter Stage
+   - Remove Filter Stage
+   - View/Edit Filter Stages
+2. **Sensor & Leak Settings (`sensor_leak_settings`)**: Configure global flow meter and leak engine parameters:
+   - `source_sensor`: Select water flow sensor.
+   - `source_type`: Pulse-based or direct Liter-based measurement mode.
+   - `pulses_per_liter`: Modifies calibration factor.
+   - `leak_detection_mode`: Active leak detection profile (Standard, Kitchen RO, Away, Disabled).
+   - `replacement_reason`: Set default reason when a filter is replaced.
+3. **Add Stage (`add_stage` & `add_stage_custom`)**: Configure new filtration stages:
+   - Presets: Carbon (4000L, 365 days), Capillary (5000L, 365 days), Sediment (3000L, 180 days).
+   - Custom: Allows manual name, capacity (Liters), and max age (Days).
+4. **Remove Stage (`remove_stage`)**: Safely removes a filtration stage by selecting from a list of currently active stages.
+5. **Edit Stage (`edit_stage` & `edit_stage_details`)**: Modify the capacity or maximum age parameters of any active filtration stage.
+

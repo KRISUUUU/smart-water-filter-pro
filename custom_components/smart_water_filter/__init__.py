@@ -20,7 +20,7 @@ from .coordinator import SmartWaterCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "binary_sensor", "button", "number", "select"]
+PLATFORMS = ["sensor", "binary_sensor", "button", "number"]
 
 # Service Schema Definitions
 RESET_FILTER_SCHEMA = vol.Schema({
