@@ -14,10 +14,8 @@ from .const import (
     CONF_SOURCE_SENSOR,
     CONF_SOURCE_TYPE,
     CONF_PULSES_PER_LITER,
-    CONF_INITIAL_CAPACITY,
     SOURCE_TYPE_PULSES,
     SOURCE_TYPE_LITERS,
-    DEFAULT_CAPACITY,
     DEFAULT_PULSES_PER_LITER,
 )
 
@@ -55,7 +53,6 @@ class SmartWaterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 SOURCE_TYPE_LITERS,
             ]),
             vol.Required(CONF_PULSES_PER_LITER, default=DEFAULT_PULSES_PER_LITER): vol.Coerce(float),
-            vol.Required(CONF_INITIAL_CAPACITY, default=DEFAULT_CAPACITY): vol.Coerce(float),
         })
 
         return self.async_show_form(

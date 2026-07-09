@@ -1,7 +1,7 @@
 """Constants for Smart Water Filter integration."""
 
 DOMAIN = "smart_water_filter"
-STORAGE_VERSION = 4
+STORAGE_VERSION = 5
 
 CONF_SOURCE_SENSOR = "source_sensor"
 CONF_SOURCE_TYPE = "source_type"

@@ -25,25 +25,27 @@ from smart_water_filter.migration import async_migrate_storage
 class TestStorageMigration(unittest.IsolatedAsyncioTestCase):
     """Test suite for migration.py logic."""
 
-    async def test_migration_v1_to_v3(self) -> None:
-        """Verify v1 flat schema migrates correctly to nested v3 schema."""
+    async def test_migration_v1_to_v5(self) -> None:
+        """Verify v1 flat schema migrates correctly to nested v5 stages schema."""
         v1_data = {
             "total": 1250.5
         }
         
-        v4_data = await async_migrate_storage(old_version=1, old_minor_version=1, data=v1_data)
+        v5_data = await async_migrate_storage(old_version=1, old_minor_version=1, data=v1_data)
         
         # Check totals
-        self.assertEqual(v4_data["totals"]["lifetime_liters"], 1250.5)
-        # Check defaults
-        self.assertEqual(v4_data["filter"]["capacity"], 3000.0)
-        self.assertEqual(v4_data["filter"]["used"], 0.0)
-        self.assertEqual(v4_data["leak"]["severity"], "normal")
-        self.assertEqual(v4_data["leak"]["events_total"], 0)
-        self.assertEqual(v4_data["calibration"]["pulses_per_liter"], 450.0)
+        self.assertEqual(v5_data["totals"]["lifetime_liters"], 1250.5)
+        # Check defaults in v5 stages
+        self.assertEqual(len(v5_data["stages"]), 1)
+        self.assertEqual(v5_data["stages"][0]["id"], "main_filter")
+        self.assertEqual(v5_data["stages"][0]["capacity_liters"], 3000.0)
+        self.assertEqual(v5_data["stages"][0]["used_liters"], 0.0)
+        self.assertEqual(v5_data["leak"]["severity"], "normal")
+        self.assertEqual(v5_data["leak"]["events_total"], 0)
+        self.assertEqual(v5_data["calibration"]["pulses_per_liter"], 450.0)
 
-    async def test_migration_v2_to_v3(self) -> None:
-        """Verify v2 schema migrates correctly to nested v3 schema."""
+    async def test_migration_v2_to_v5(self) -> None:
+        """Verify v2 schema migrates correctly to nested v5 stages schema."""
         v2_data = {
             "lifetime_total_liters": 1500.0,
             "filter_used_liters": 250.0,
@@ -62,31 +64,33 @@ class TestStorageMigration(unittest.IsolatedAsyncioTestCase):
             "hourly_accumulator": 0.5
         }
 
-        v4_data = await async_migrate_storage(old_version=2, old_minor_version=1, data=v2_data)
+        v5_data = await async_migrate_storage(old_version=2, old_minor_version=1, data=v2_data)
 
         # Assert correct nestings
-        self.assertEqual(v4_data["totals"]["lifetime_liters"], 1500.0)
-        self.assertEqual(v4_data["totals"]["today_liters"], 15.0)
-        self.assertEqual(v4_data["totals"]["active_time"], 120.0)
-        self.assertEqual(v4_data["totals"]["last_date_str"], "2026-07-02")
-        self.assertEqual(v4_data["totals"]["last_hour"], 13)
-        self.assertEqual(v4_data["totals"]["hourly_accumulator"], 0.5)
+        self.assertEqual(v5_data["totals"]["lifetime_liters"], 1500.0)
+        self.assertEqual(v5_data["totals"]["today_liters"], 15.0)
+        self.assertEqual(v5_data["totals"]["active_time"], 120.0)
+        self.assertEqual(v5_data["totals"]["last_date_str"], "2026-07-02")
+        self.assertEqual(v5_data["totals"]["last_hour"], 13)
+        self.assertEqual(v5_data["totals"]["hourly_accumulator"], 0.5)
 
-        self.assertEqual(v4_data["filter"]["capacity"], 2000.0)
-        self.assertEqual(v4_data["filter"]["used"], 250.0)
-        self.assertEqual(v4_data["filter"]["installed_date"], "2026-07-01T00:00:00")
-        self.assertEqual(len(v4_data["filter"]["history"]), 1)
-        self.assertEqual(v4_data["filter"]["history"][0]["reason"], "expired")
+        self.assertEqual(len(v5_data["stages"]), 1)
+        self.assertEqual(v5_data["stages"][0]["id"], "main_filter")
+        self.assertEqual(v5_data["stages"][0]["capacity_liters"], 2000.0)
+        self.assertEqual(v5_data["stages"][0]["used_liters"], 250.0)
+        self.assertEqual(v5_data["stages"][0]["installed_date"], "2026-07-01T00:00:00")
+        self.assertEqual(len(v5_data["stages"][0]["history"]), 1)
+        self.assertEqual(v5_data["stages"][0]["history"][0]["reason"], "expired")
 
-        self.assertEqual(v4_data["leak"]["alarm_active"], True)
-        self.assertEqual(v4_data["leak"]["severity"], "micro")
-        self.assertEqual(v4_data["leak"]["events_total"], 2)
+        self.assertEqual(v5_data["leak"]["alarm_active"], True)
+        self.assertEqual(v5_data["leak"]["severity"], "micro")
+        self.assertEqual(v5_data["leak"]["events_total"], 2)
         
-        self.assertEqual(v4_data["statistics"]["daily"][0]["liters"], 20.0)
-        self.assertEqual(v4_data["statistics"]["hourly"]["12"], 1.5)
+        self.assertEqual(v5_data["statistics"]["daily"][0]["liters"], 20.0)
+        self.assertEqual(v5_data["statistics"]["hourly"]["12"], 1.5)
 
-    async def test_migration_v3_to_v4(self) -> None:
-        """Verify v3 nested schema migrates correctly to nested v4 schema."""
+    async def test_migration_v3_to_v5(self) -> None:
+        """Verify v3 nested schema migrates correctly to nested v5 stages schema."""
         v3_data = {
             "filter": {
                 "capacity": 3000.0,
@@ -122,10 +126,53 @@ class TestStorageMigration(unittest.IsolatedAsyncioTestCase):
             }
         }
         
-        v4_data = await async_migrate_storage(old_version=3, old_minor_version=1, data=v3_data)
+        v5_data = await async_migrate_storage(old_version=3, old_minor_version=1, data=v3_data)
         
         # Verify filtered_flow_rate is added and default is 0.0
-        self.assertEqual(v4_data["totals"]["filtered_flow_rate"], 0.0)
+        self.assertEqual(v5_data["totals"]["filtered_flow_rate"], 0.0)
         # Verify micro/high leak start times are added and default is None
-        self.assertIsNone(v4_data["leak"]["micro_start_iso"])
-        self.assertIsNone(v4_data["leak"]["high_start_iso"])
+        self.assertIsNone(v5_data["leak"]["micro_start_iso"])
+        self.assertIsNone(v5_data["leak"]["high_start_iso"])
+        
+        # Verify stage migrated
+        self.assertEqual(len(v5_data["stages"]), 1)
+        self.assertEqual(v5_data["stages"][0]["id"], "main_filter")
+        self.assertEqual(v5_data["stages"][0]["capacity_liters"], 3000.0)
+
+    async def test_migration_v4_to_v5(self) -> None:
+        """Verify v4 nested schema migrates correctly to v5 stages schema."""
+        v4_data = {
+            "filter": {
+                "capacity": 2500.0,
+                "used": 120.0,
+                "installed_date": "2026-07-01T00:00:00",
+                "max_age_days": 180.0,
+                "baseline_flow_rate": 2.2,
+                "recent_max_flow_rate": 1.8,
+                "history": [{"date": "2026-01-01", "liters_used": 1900.0, "capacity": 2000.0, "reason": "expired"}]
+            },
+            "leak": {
+                "alarm_active": False,
+                "severity": "normal"
+            }
+        }
+        
+        v5_data = await async_migrate_storage(old_version=4, old_minor_version=1, data=v4_data)
+        
+        # Verify "filter" is popped and "stages" is created
+        self.assertNotIn("filter", v5_data)
+        self.assertIn("stages", v5_data)
+        self.assertEqual(len(v5_data["stages"]), 1)
+        
+        stage = v5_data["stages"][0]
+        self.assertEqual(stage["id"], "main_filter")
+        self.assertEqual(stage["name"], "Main Filter")
+        self.assertEqual(stage["type"], "custom")
+        self.assertEqual(stage["capacity_liters"], 2500.0)
+        self.assertEqual(stage["max_age_days"], 180)
+        self.assertEqual(stage["used_liters"], 120.0)
+        self.assertEqual(stage["installed_date"], "2026-07-01T00:00:00")
+        self.assertEqual(stage["baseline_flow_rate"], 2.2)
+        self.assertEqual(stage["recent_max_flow_rate"], 1.8)
+        self.assertEqual(len(stage["history"]), 1)
+        self.assertEqual(stage["history"][0]["reason"], "expired")

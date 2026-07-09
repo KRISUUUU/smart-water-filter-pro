@@ -1,7 +1,7 @@
 {
   "domain": "smart_water_filter",
   "name": "Smart Water Filter PRO",
-  "version": "4.3.1",
+  "version": "5.0.0",
   "integration_type": "hub",
   "iot_class": "local_push",
   "config_flow": true,

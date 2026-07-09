@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Callable
 
 from homeassistant.components.sensor import (
@@ -27,7 +28,7 @@ class SmartWaterSensorEntityDescription(SensorEntityDescription):
     """Class describing Smart Water Filter sensor entities."""
     value_fn: Callable[[dict[str, Any]], Any]
 
-SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
+GLOBAL_SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
     # Water Usage Sensors
     SmartWaterSensorEntityDescription(
         key="water_total_liters",
@@ -72,93 +73,29 @@ SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda data: data["last_flow_time"],
     ),
-
-    # Filter Volume Sensors
-    SmartWaterSensorEntityDescription(
-        key="filter_capacity",
-        translation_key="filter_capacity",
-        native_unit_of_measurement=UnitOfVolume.LITERS,
-        device_class=SensorDeviceClass.WATER,
-        value_fn=lambda data: data["filter_capacity_liters"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_used",
-        translation_key="filter_used",
-        native_unit_of_measurement=UnitOfVolume.LITERS,
-        device_class=SensorDeviceClass.WATER,
-        value_fn=lambda data: data["filter_used_liters"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_remaining",
-        translation_key="filter_remaining",
-        native_unit_of_measurement=UnitOfVolume.LITERS,
-        device_class=SensorDeviceClass.WATER,
-        value_fn=lambda data: data["filter_remaining_liters"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_percentage",
-        translation_key="filter_percentage",
-        native_unit_of_measurement="%",
-        value_fn=lambda data: data["filter_percentage"],
-    ),
-
-    # Filter Lifetime & Degradation Sensors
-    SmartWaterSensorEntityDescription(
-        key="filter_max_age",
-        translation_key="filter_max_age",
-        native_unit_of_measurement=UnitOfTime.DAYS,
-        value_fn=lambda data: data["filter_max_age_days"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_age_days",
-        translation_key="filter_age_days",
-        native_unit_of_measurement=UnitOfTime.DAYS,
-        value_fn=lambda data: (datetime.now() - datetime.fromisoformat(data["filter_installed_date"])).days
-        if data["filter_installed_date"] else 0,
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_flow_degradation",
-        translation_key="filter_flow_degradation",
-        native_unit_of_measurement="%",
-        value_fn=lambda data: data["filter_flow_degradation"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_clogging_status",
-        translation_key="filter_clogging_status",
-        options=["normal", "warning", "restricted"],
-        value_fn=lambda data: data["filter_clogging_status"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_health_score",
-        translation_key="filter_health_score",
-        native_unit_of_measurement="%",
-        value_fn=lambda data: data["filter_health_score"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="filter_health",
-        translation_key="filter_health",
-        options=["excellent", "good", "fair", "replace_soon", "replace_now"],
-        value_fn=lambda data: data["filter_health_status"],
-    ),
     SmartWaterSensorEntityDescription(
         key="water_usage_trend",
         translation_key="water_usage_trend",
         options=["stable", "increasing", "decreasing"],
         value_fn=lambda data: data["usage_trend"],
     ),
-    SmartWaterSensorEntityDescription(
-        key="estimated_days",
-        translation_key="estimated_days",
-        native_unit_of_measurement=UnitOfTime.DAYS,
-        value_fn=lambda data: data["estimated_days"],
-    ),
-    SmartWaterSensorEntityDescription(
-        key="confidence",
-        translation_key="confidence",
-        native_unit_of_measurement="%",
-        value_fn=lambda data: data["confidence"],
-    ),
 ]
+
+STAGE_SENSOR_DESCRIPTIONS = {
+    "remaining_liters": SensorEntityDescription(
+        key="stage_remaining_liters",
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        device_class=SensorDeviceClass.WATER,
+    ),
+    "estimated_days": SensorEntityDescription(
+        key="stage_remaining_days",
+        native_unit_of_measurement=UnitOfTime.DAYS,
+    ),
+    "health_score": SensorEntityDescription(
+        key="stage_health_score",
+        native_unit_of_measurement="%",
+    ),
+}
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -168,16 +105,24 @@ async def async_setup_entry(
     """Set up Smart Water Filter sensors."""
     coordinator: SmartWaterCoordinator = hass.data[DOMAIN][entry.entry_id]
     
-    entities = [
-        SmartWaterSensor(coordinator, description)
-        for description in SENSOR_DESCRIPTIONS
-    ]
+    entities: list[SensorEntity] = []
+    
+    # 1. Register global entities
+    for description in GLOBAL_SENSOR_DESCRIPTIONS:
+        entities.append(SmartWaterSensor(coordinator, description))
+        
+    # 2. Register dynamic stage-specific entities
+    for stage_id, stage_data in coordinator.data["stages"].items():
+        stage_name = stage_data["name"]
+        for metric, desc in STAGE_SENSOR_DESCRIPTIONS.items():
+            entities.append(
+                SmartWaterStageSensor(coordinator, stage_id, stage_name, metric, desc)
+            )
+            
     async_add_entities(entities)
 
-from datetime import datetime
-
 class SmartWaterSensor(SmartWaterBaseEntity, SensorEntity):
-    """Smart Water Filter Sensor."""
+    """Smart Water Filter Global Sensor."""
 
     entity_description: SmartWaterSensorEntityDescription
 
@@ -194,3 +139,42 @@ class SmartWaterSensor(SmartWaterBaseEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         return self.entity_description.value_fn(self.coordinator.data)
+
+class SmartWaterStageSensor(SmartWaterBaseEntity, SensorEntity):
+    """Smart Water Filter Stage-Specific Sensor."""
+
+    def __init__(
+        self,
+        coordinator: SmartWaterCoordinator,
+        stage_id: str,
+        stage_name: str,
+        metric: str,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize the stage-specific sensor."""
+        super().__init__(coordinator, f"{stage_id}_{metric}")
+        self.entity_description = description
+        self.stage_id = stage_id
+        self.stage_name = stage_name
+        self.metric = metric
+        
+        # Override unique ID and translations using HAs deterministic stages guidelines
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_{metric}"
+        self._attr_translation_key = f"stage_{metric}"
+        self._attr_translation_placeholders = {"stage_name": stage_name}
+
+    @property
+    def native_value(self) -> Any:
+        """Return the state of the stage sensor."""
+        stage_data = self.coordinator.data["stages"].get(self.stage_id)
+        if not stage_data:
+            return None
+        
+        # Mapping metric keys
+        if self.metric == "remaining_liters":
+            return stage_data.get("remaining_liters")
+        elif self.metric == "estimated_days":
+            return stage_data.get("estimated_days")
+        elif self.metric == "health_score":
+            return stage_data.get("health_score")
+        return None

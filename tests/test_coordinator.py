@@ -71,7 +71,21 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
 
         # Mock underlying storage store load/save
-        storage_data = {}
+        storage_data = {
+            "stages": [
+                {
+                    "id": "main_filter",
+                    "name": "Main Filter",
+                    "type": "custom",
+                    "capacity_liters": 3000.0,
+                    "used_liters": 0.0,
+                    "installed_date": "2026-07-01T00:00:00",
+                    "baseline_flow_rate": 0.0,
+                    "recent_max_flow_rate": 0.0,
+                    "history": []
+                }
+            ]
+        }
         async def mock_load():
             return storage_data
         async def mock_save(data):
@@ -91,6 +105,7 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(coordinator.today_used_liters, 0.0)
         self.assertEqual(coordinator.current_flow_rate, 0.0)
         self.assertEqual(coordinator.pulses_per_liter, 450.0)
+        self.assertIn("main_filter", coordinator.filter_engine.stages)
 
         # 4. Inject pulses
         # Create a mock state representing 100 pulses at t0
@@ -120,15 +135,18 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(coordinator.lifetime_total_liters, 1.0)
         self.assertEqual(coordinator.today_used_liters, 1.0)
         self.assertGreater(coordinator.current_flow_rate, 0.0)
+        self.assertEqual(coordinator.filter_engine.stages["main_filter"].used_liters, 1.0)
 
         # 5. Save state
         await coordinator.async_save_state()
         
-        # Verify saved data structure is v4 nested schema
+        # Verify saved data structure has stages and totals
         self.assertIn("totals", storage_data)
         self.assertEqual(storage_data["totals"]["lifetime_liters"], 1.0)
         self.assertEqual(storage_data["totals"]["today_liters"], 1.0)
         self.assertGreater(storage_data["totals"]["filtered_flow_rate"], 0.0)
+        self.assertIn("stages", storage_data)
+        self.assertEqual(storage_data["stages"][0]["used_liters"], 1.0)
 
         # 6. Reload from storage
         new_coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
@@ -136,7 +154,8 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         
         await new_coordinator.async_setup()
 
-        # 7. Verify totals restored
+        # 7. Verify totals and stages restored
         self.assertEqual(new_coordinator.lifetime_total_liters, 1.0)
         self.assertEqual(new_coordinator.today_used_liters, 1.0)
         self.assertGreater(new_coordinator.current_flow_rate, 0.0)
+        self.assertEqual(new_coordinator.filter_engine.stages["main_filter"].used_liters, 1.0)

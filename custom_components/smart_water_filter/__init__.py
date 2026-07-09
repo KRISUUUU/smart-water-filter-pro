@@ -24,8 +24,20 @@ PLATFORMS = ["sensor", "binary_sensor", "button", "number", "select"]
 
 # Service Schema Definitions
 RESET_FILTER_SCHEMA = vol.Schema({
+    vol.Required("stage_id"): cv.string,
     vol.Optional("capacity"): vol.Coerce(float),
     vol.Optional("reason"): cv.string,
+})
+
+ADD_FILTER_STAGE_SCHEMA = vol.Schema({
+    vol.Required("name"): cv.string,
+    vol.Required("type"): vol.In(["carbon", "capillary", "sediment", "custom"]),
+    vol.Optional("capacity"): vol.Coerce(float),
+    vol.Optional("max_age_days"): vol.Coerce(float),
+})
+
+REMOVE_FILTER_STAGE_SCHEMA = vol.Schema({
+    vol.Required("stage_id"): cv.string,
 })
 
 FINISH_CALIBRATION_SCHEMA = vol.Schema({
@@ -50,9 +62,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register services
     async def handle_reset_filter(call: ServiceCall) -> None:
+        stage_id = call.data["stage_id"]
         cap = call.data.get("capacity")
         reason = call.data.get("reason", "manual")
-        await coordinator.async_reset_filter(new_capacity=cap, reason=reason)
+        await coordinator.async_reset_filter(stage_id=stage_id, new_capacity=cap, reason=reason)
+
+    async def handle_add_filter_stage(call: ServiceCall) -> None:
+        name = call.data["name"]
+        stype = call.data["type"]
+        cap = call.data.get("capacity", 3000.0)
+        max_age = call.data.get("max_age_days", 365.0)
+        await coordinator.async_add_filter_stage(
+            name=name,
+            stage_type=stype,
+            capacity_liters=cap,
+            max_age_days=max_age,
+        )
+
+    async def handle_remove_filter_stage(call: ServiceCall) -> None:
+        stage_id = call.data["stage_id"]
+        await coordinator.async_remove_filter_stage(stage_id=stage_id)
 
     async def handle_clear_alarm(call: ServiceCall) -> None:
         await coordinator.async_clear_alarm()
@@ -75,20 +104,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "lifetime_total_liters": coordinator.lifetime_total_liters,
             "today_used_liters": coordinator.today_used_liters,
             "current_flow_rate": coordinator.current_flow_rate,
-            "filter_remaining_liters": coordinator.filter_engine.remaining_liters,
-            "filter_percentage": coordinator.filter_engine.percentage,
-            "filter_health_score": coordinator.filter_engine.health_score,
-            "filter_health_status": coordinator.filter_engine.health_status,
-            "filter_installed_date": coordinator.filter_engine.installed_date,
-            "estimated_days": coordinator.data["estimated_days"],
+            "stages": [
+                {
+                    "id": stage.id,
+                    "name": stage.name,
+                    "type": stage.type,
+                    "capacity_liters": stage.capacity_liters,
+                    "used_liters": stage.used_liters,
+                    "remaining_liters": stage.remaining_liters,
+                    "percentage": stage.percentage,
+                    "health_score": stage.health_score,
+                    "health_status": stage.health_status,
+                    "history": stage.history,
+                }
+                for stage in coordinator.filter_engine.stages.values()
+            ],
             "leak_events_total": coordinator.leak_engine.leak_events_total,
             "pulses_per_liter": coordinator.pulses_per_liter,
             "events": coordinator.event_logger.to_list(),
-            "history": coordinator.filter_engine.history,
         }
 
     hass.services.async_register(
         DOMAIN, "reset_filter", handle_reset_filter, schema=RESET_FILTER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, "add_filter_stage", handle_add_filter_stage, schema=ADD_FILTER_STAGE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, "remove_filter_stage", handle_remove_filter_stage, schema=REMOVE_FILTER_STAGE_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, "clear_alarm", handle_clear_alarm
@@ -126,7 +169,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Remove services if no other entries exist
         if not hass.data[DOMAIN]:
-            for svc in ["reset_filter", "clear_alarm", "start_calibration", "finish_calibration", "set_leak_mode", "export_history"]:
+            for svc in [
+                "reset_filter",
+                "add_filter_stage",
+                "remove_filter_stage",
+                "clear_alarm",
+                "start_calibration",
+                "finish_calibration",
+                "set_leak_mode",
+                "export_history"
+            ]:
                 hass.services.async_remove(DOMAIN, svc)
 
     return unload_ok

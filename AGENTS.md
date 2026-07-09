@@ -23,18 +23,44 @@ External clients must filter state events using the following specific entity ID
 - **`sensor.water_flow_rate`**: Stream flow speed (L/min).
 - **`sensor.total_volume`**: Cumulative total liters consumed since initialization.
 - **`binary_sensor.water_leak_alarm`**: Moisture problem leak notification state (`ON` / `OFF`).
-- **`sensor.filter_health_score`**: Hydrodynamic health score percentage (0-100%).
-- **`sensor.filter_clogging_status`**: Physical membrane restriction status (`normal`, `warning`, `restricted`).
+- **`sensor.{stage_id}_health_score`**: Hydrodynamic health score percentage (0-100%) for a specific stage.
+- **`sensor.{stage_id}_remaining_liters`**: Volume remaining in liters for a specific stage.
+- **`sensor.{stage_id}_remaining_days`**: Estimated days remaining for a specific stage.
+- **`binary_sensor.{stage_id}_replace_required`**: Alert status (`ON` / `OFF`) for a specific stage.
 
 ### B. REST API Service Execution
 To interact with integration services programmatically, execute POST requests against the Home Assistant REST endpoint. Headers must contain a valid `Authorization: Bearer <LONG_LIVED_ACCESS_TOKEN>` token.
 
+#### Add Filter Stage Lifecycle (`smart_water_filter.add_filter_stage`)
+Injects a new filtration stage dynamically into the cascade.
+- **Endpoint**: `POST /api/services/smart_water_filter/add_filter_stage`
+- **Payload**:
+```json
+{
+  "name": "Sediment Filter",
+  "type": "sediment",
+  "capacity": 3000,
+  "max_age_days": 365
+}
+```
+
+#### Remove Filter Stage Lifecycle (`smart_water_filter.remove_filter_stage`)
+Removes a filtration stage by ID.
+- **Endpoint**: `POST /api/services/smart_water_filter/remove_filter_stage`
+- **Payload**:
+```json
+{
+  "stage_id": "sediment_filter"
+}
+```
+
 #### Reset Filter Life Lifecycle (`smart_water_filter.reset_filter`)
-Resets usage values when a cartridge is replaced.
+Resets usage values when a cartridge is replaced for a specific stage.
 - **Endpoint**: `POST /api/services/smart_water_filter/reset_filter`
 - **Payload**:
 ```json
 {
+  "stage_id": "main_filter",
   "capacity": 5000,
   "reason": "taste"
 }
@@ -63,17 +89,17 @@ Subsequent LLM agents and system developers interacting with this integration's 
 
 ```text
 [SYSTEM INSTRUCTION: SMART WATER FILTER PRO TELEMETRY INTEGRATION]
-You are interacting with the Smart Water Filter PRO (v4.3.1).
+You are interacting with the Smart Water Filter PRO (v5.0.0).
 To prevent faulty diagnostic warnings and false logic assumptions, you must enforce the following zero-hallucination parsing constraints:
 
-1. NEVER CONFUSE `filter_percentage` WITH `filter_health_score`.
-   - `filter_percentage` is a linear volumetric metric:
-     Filter Percentage = (Volume Remaining / Total Capacity) * 100%
-   - `filter_health_score` is a non-linear hybrid metric that factors in elapsed calendar age, volumetric depletion, AND physical hydrodynamic flow degradation calculated via active usage flow rate drop (EMA).
+1. NEVER CONFUSE `stage_percentage` WITH `stage_health_score` FOR A GIVEN STAGE.
+   - `stage_percentage` is a linear volumetric metric:
+     Stage Percentage = (Volume Remaining / Total Capacity) * 100%
+   - `stage_health_score` is a non-linear hybrid metric that factors in elapsed calendar age, volumetric depletion, AND physical hydrodynamic flow degradation calculated via active usage flow rate drop (EMA) for that specific stage.
    
 2. PREMATURE MEMBRANE FAILURE VS. NORMAL WEAR:
-   - If the binary sensor `filter_clogging_status` or state matches `restricted` or `warning` while `filter_percentage` is high (e.g. > 70%), this indicates a premature membrane failure, heavy sediment spike, or pipe blockage.
-   - Do NOT report this as a normal end-of-life replacement event. Diagnose it specifically as a hardware clogging anomaly.
+   - If a stage's attributes or state indicate high degradation or clogging status is warning/restricted while `stage_percentage` is high (e.g. > 70%), this indicates a premature membrane failure, heavy sediment spike, or pipe blockage.
+   - Do NOT report this as a normal end-of-life replacement event. Diagnose it specifically as a hardware clogging anomaly for that stage.
    
 3. LEAK ALARM LATCHING RULES:
    - Leak alarms are latched. Once a leak severity moves to 'micro', 'high', or 'critical', the alarm entity state remains active even if flow stops (0.0 L/min).

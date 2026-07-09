@@ -2,7 +2,7 @@
 from typing import Any
 
 async def async_migrate_storage(old_version: int, old_minor_version: int, data: dict[str, Any]) -> dict[str, Any]:
-    """Migrate storage data to the current version (v4) using a step-by-step migration chain."""
+    """Migrate storage data to the current version (v5) using a step-by-step migration chain."""
     migrated_data = data.copy()
 
     # Step 1: Migrate v1 to v2
@@ -19,6 +19,11 @@ async def async_migrate_storage(old_version: int, old_minor_version: int, data: 
     if old_version == 3:
         migrated_data = migrate_v3_to_v4(migrated_data)
         old_version = 4
+
+    # Step 4: Migrate v4 to v5
+    if old_version == 4:
+        migrated_data = migrate_v4_to_v5(migrated_data)
+        old_version = 5
 
     return migrated_data
 
@@ -114,4 +119,25 @@ def migrate_v3_to_v4(data: dict[str, Any]) -> dict[str, Any]:
     if "high_start_iso" not in leak:
         leak["high_start_iso"] = None
         
+    return migrated
+
+def migrate_v4_to_v5(data: dict[str, Any]) -> dict[str, Any]:
+    """Migrate from v4 to v5 schema."""
+    migrated = data.copy()
+    old_filter = migrated.pop("filter", {})
+    stages = []
+    if old_filter:
+        stages.append({
+            "id": "main_filter",
+            "name": "Main Filter",
+            "type": "custom",
+            "capacity_liters": float(old_filter.get("capacity", 3000.0)),
+            "max_age_days": int(old_filter.get("max_age_days", 365)) if old_filter.get("max_age_days") is not None else 365,
+            "used_liters": float(old_filter.get("used", 0.0)),
+            "installed_date": old_filter.get("installed_date"),
+            "baseline_flow_rate": float(old_filter.get("baseline_flow_rate", 0.0)),
+            "recent_max_flow_rate": float(old_filter.get("recent_max_flow_rate", 0.0)),
+            "history": old_filter.get("history", [])
+        })
+    migrated["stages"] = stages
     return migrated

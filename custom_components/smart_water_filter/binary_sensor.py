@@ -23,7 +23,7 @@ class SmartWaterBinarySensorEntityDescription(BinarySensorEntityDescription):
     is_on_fn: Callable[[dict[str, Any]], bool]
     extra_attributes_fn: Callable[[dict[str, Any]], dict[str, Any] | None] = lambda data: None
 
-BINARY_SENSOR_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
+GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     SmartWaterBinarySensorEntityDescription(
         key="water_leak_alarm",
         translation_key="water_leak_alarm",
@@ -32,17 +32,6 @@ BINARY_SENSOR_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
         extra_attributes_fn=lambda data: {
             "severity": data["leak_severity"],
             "events_total": data["leak_events_total"],
-        }
-    ),
-    SmartWaterBinarySensorEntityDescription(
-        key="filter_replace",
-        translation_key="filter_replace",
-        device_class=BinarySensorDeviceClass.PROBLEM,
-        is_on_fn=lambda data: data["filter_health_status"] in ("replace_soon", "replace_now"),
-        extra_attributes_fn=lambda data: {
-            "health_score": data["filter_health_score"],
-            "remaining_liters": data["filter_remaining_liters"],
-            "estimated_days": data["estimated_days"],
         }
     ),
     SmartWaterBinarySensorEntityDescription(
@@ -56,6 +45,11 @@ BINARY_SENSOR_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     ),
 ]
 
+STAGE_BINARY_DESCRIPTION = BinarySensorEntityDescription(
+    key="stage_replace_required",
+    device_class=BinarySensorDeviceClass.PROBLEM,
+)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -64,14 +58,23 @@ async def async_setup_entry(
     """Set up Smart Water Filter binary sensors."""
     coordinator: SmartWaterCoordinator = hass.data[DOMAIN][entry.entry_id]
     
-    entities = [
-        SmartWaterBinarySensor(coordinator, description)
-        for description in BINARY_SENSOR_DESCRIPTIONS
-    ]
+    entities: list[BinarySensorEntity] = []
+    
+    # 1. Register global binary sensors
+    for description in GLOBAL_BINARY_DESCRIPTIONS:
+        entities.append(SmartWaterBinarySensor(coordinator, description))
+        
+    # 2. Register dynamic stage binary sensors
+    for stage_id, stage_data in coordinator.data["stages"].items():
+        stage_name = stage_data["name"]
+        entities.append(
+            SmartWaterStageBinarySensor(coordinator, stage_id, stage_name, STAGE_BINARY_DESCRIPTION)
+        )
+        
     async_add_entities(entities)
 
 class SmartWaterBinarySensor(SmartWaterBaseEntity, BinarySensorEntity):
-    """Smart Water Filter Binary Sensor."""
+    """Smart Water Filter Global Binary Sensor."""
 
     entity_description: SmartWaterBinarySensorEntityDescription
 
@@ -93,3 +96,45 @@ class SmartWaterBinarySensor(SmartWaterBaseEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return any extra state attributes."""
         return self.entity_description.extra_attributes_fn(self.coordinator.data)
+
+class SmartWaterStageBinarySensor(SmartWaterBaseEntity, BinarySensorEntity):
+    """Smart Water Filter Stage replacement warning binary sensor."""
+
+    def __init__(
+        self,
+        coordinator: SmartWaterCoordinator,
+        stage_id: str,
+        stage_name: str,
+        description: BinarySensorEntityDescription,
+    ) -> None:
+        """Initialize the stage-specific binary sensor."""
+        super().__init__(coordinator, f"{stage_id}_replace_required")
+        self.entity_description = description
+        self.stage_id = stage_id
+        self.stage_name = stage_name
+        
+        # Override unique ID and translation details
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_replace_required"
+        self._attr_translation_key = "stage_replace_required"
+        self._attr_translation_placeholders = {"stage_name": stage_name}
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if the binary sensor is on (replacement required)."""
+        stage_data = self.coordinator.data["stages"].get(self.stage_id)
+        if not stage_data:
+            return False
+        return stage_data.get("health_status") in ("replace_soon", "replace_now")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return stage attributes."""
+        stage_data = self.coordinator.data["stages"].get(self.stage_id)
+        if not stage_data:
+            return None
+        return {
+            "health_score": stage_data.get("health_score"),
+            "remaining_liters": stage_data.get("remaining_liters"),
+            "estimated_days": stage_data.get("estimated_days"),
+            "clogging_status": stage_data.get("clogging_status"),
+        }

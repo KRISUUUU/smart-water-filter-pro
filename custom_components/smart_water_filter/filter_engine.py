@@ -1,13 +1,24 @@
-"""Filter engine to manage filter capacity, lifetime tracking, and clogging."""
+"""Filter engine to manage filter stages, capacity, lifetime tracking, and clogging."""
 from datetime import datetime
+import re
 from typing import Dict, Any, List, Optional
 
-class FilterEngine:
-    """Tracks water filter health, usage volume, age, and flow rate degradation."""
+def slugify(text: str) -> str:
+    """Simplify a string into a slug."""
+    text = text.lower()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s-]+", "_", text)
+    return text.strip("_")
+
+class FilterStage:
+    """Tracks a single water filter stage's health, usage volume, age, and flow rate degradation."""
 
     def __init__(
         self,
-        capacity_liters: float,
+        stage_id: str,
+        name: str,
+        stage_type: str = "custom",
+        capacity_liters: float = 3000.0,
         used_liters: float = 0.0,
         installed_date: Optional[str] = None,
         max_age_days: float = 365.0,
@@ -15,6 +26,9 @@ class FilterEngine:
         recent_max_flow_rate: float = 0.0,
         history: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
+        self.id = slugify(stage_id)
+        self.name = name
+        self.type = stage_type  # carbon, capillary, sediment, custom
         self.capacity_liters = float(capacity_liters)
         self.used_liters = float(used_liters)
         self.installed_date = installed_date or datetime.now().isoformat()
@@ -143,13 +157,78 @@ class FilterEngine:
         self.recent_max_flow_rate = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert engine state to dict for storage."""
+        """Convert stage state to dict for storage."""
         return {
-            "capacity": self.capacity_liters,
-            "used": self.used_liters,
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "capacity_liters": self.capacity_liters,
+            "used_liters": self.used_liters,
             "installed_date": self.installed_date,
             "max_age_days": self.max_age_days,
             "baseline_flow_rate": self.baseline_flow_rate,
             "recent_max_flow_rate": self.recent_max_flow_rate,
             "history": self.history,
         }
+
+
+class FilterEngine:
+    """Manages an array of FilterStage instances."""
+
+    def __init__(self, stages_data: Optional[List[Dict[str, Any]]] = None) -> None:
+        self.stages: Dict[str, FilterStage] = {}
+        
+        stages_data = stages_data or []
+        for s in stages_data:
+            stage_id = s.get("id") or slugify(s.get("name", "Filter Stage"))
+            self.stages[stage_id] = FilterStage(
+                stage_id=stage_id,
+                name=s.get("name", "Filter Stage"),
+                stage_type=s.get("type", "custom"),
+                capacity_liters=s.get("capacity_liters", 3000.0),
+                used_liters=s.get("used_liters", 0.0),
+                installed_date=s.get("installed_date"),
+                max_age_days=s.get("max_age_days", 365.0),
+                baseline_flow_rate=s.get("baseline_flow_rate", 0.0),
+                recent_max_flow_rate=s.get("recent_max_flow_rate", 0.0),
+                history=s.get("history"),
+            )
+
+    def record_usage(self, liters: float, flow_rate: float) -> None:
+        """Record water usage across all registered filter stages."""
+        for stage in self.stages.values():
+            stage.record_usage(liters, flow_rate)
+
+    def add_stage(
+        self,
+        name: str,
+        stage_type: str,
+        capacity_liters: float = 3000.0,
+        max_age_days: float = 365.0,
+    ) -> FilterStage:
+        """Add a new stage dynamically."""
+        stage_id = slugify(name)
+        if stage_id in self.stages:
+            # Handle duplicate naming conflicts by appending integer suffix
+            counter = 1
+            while f"{stage_id}_{counter}" in self.stages:
+                counter += 1
+            stage_id = f"{stage_id}_{counter}"
+
+        stage = FilterStage(
+            stage_id=stage_id,
+            name=name,
+            stage_type=stage_type,
+            capacity_liters=capacity_liters,
+            max_age_days=max_age_days,
+        )
+        self.stages[stage.id] = stage
+        return stage
+
+    def remove_stage(self, stage_id: str) -> Optional[FilterStage]:
+        """Remove a stage by ID."""
+        return self.stages.pop(stage_id, None)
+
+    def to_list(self) -> List[Dict[str, Any]]:
+        """Return list representation of all stages for serialization."""
+        return [stage.to_dict() for stage in self.stages.values()]

@@ -1,7 +1,13 @@
 reset_filter:
   name: Reset filter
-  description: Reset filter consumption stats and register replacement event details.
+  description: Reset filter consumption stats and register replacement event details for a specific stage.
   fields:
+    stage_id:
+      name: Stage ID
+      description: The slugified ID of the filter stage to reset (e.g. main_filter).
+      required: true
+      selector:
+        text:
     capacity:
       name: New Capacity
       description: Target volume capacity in liters of the new cartridge.
@@ -24,6 +30,59 @@ reset_filter:
             - taste
             - clogged
             - time
+
+add_filter_stage:
+  name: Add filter stage
+  description: Inject a new filtration stage dynamically into the cascade.
+  fields:
+    name:
+      name: Stage Name
+      description: A friendly name for the new stage.
+      required: true
+      selector:
+        text:
+    type:
+      name: Stage Type
+      description: The type/preset of the filtration membrane.
+      required: true
+      selector:
+        select:
+          options:
+            - carbon
+            - capillary
+            - sediment
+            - custom
+    capacity:
+      name: Volumetric Capacity
+      description: Target volume capacity in liters. Default is 3000.0.
+      required: false
+      selector:
+        number:
+          min: 100
+          max: 20000
+          step: 50
+          unit_of_measurement: L
+    max_age_days:
+      name: Lifespan limit (days)
+      description: Target replacement timeframe in calendar days. Default is 365.0.
+      required: false
+      selector:
+        number:
+          min: 30
+          max: 1095
+          step: 1
+          unit_of_measurement: d
+
+remove_filter_stage:
+  name: Remove filter stage
+  description: Remove a filtration stage from the cascade by ID.
+  fields:
+    stage_id:
+      name: Stage ID
+      description: The slugified ID of the stage to remove.
+      required: true
+      selector:
+        text:
 
 clear_alarm:
   name: Clear leak alarm

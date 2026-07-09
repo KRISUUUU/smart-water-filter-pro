@@ -6,8 +6,7 @@
         "data": {
           "source_sensor": "Source Sensor Entity",
           "source_type": "Measurement Mode",
-          "pulses_per_liter": "Calibration Factor (pulses/L)",
-          "initial_capacity": "Cartridge Capacity (liters)"
+          "pulses_per_liter": "Calibration Factor (pulses/L)"
         }
       }
     },
@@ -35,32 +34,6 @@
       "water_average_flow": { "name": "Average flow rate" },
       "active_time_minutes": { "name": "Active flow duration" },
       "last_flow_time": { "name": "Last flow timestamp" },
-      "filter_capacity": { "name": "Filter capacity" },
-      "filter_used": { "name": "Filter water used" },
-      "filter_remaining": { "name": "Filter water remaining" },
-      "filter_percentage": { "name": "Filter life percentage" },
-      "filter_max_age": { "name": "Filter age limit" },
-      "filter_age_days": { "name": "Filter age" },
-      "filter_flow_degradation": { "name": "Peak flow drop" },
-      "filter_clogging_status": {
-        "name": "Clogging status",
-        "state": {
-          "normal": "Normal",
-          "warning": "Warning",
-          "restricted": "Restricted"
-        }
-      },
-      "filter_health_score": { "name": "Overall filter health" },
-      "filter_health": {
-        "name": "Filter health status",
-        "state": {
-          "excellent": "Excellent",
-          "good": "Good",
-          "fair": "Fair",
-          "replace_soon": "Replace soon",
-          "replace_now": "Replace now"
-        }
-      },
       "water_usage_trend": {
         "name": "Usage trend",
         "state": {
@@ -69,32 +42,33 @@
           "decreasing": "Decreasing"
         }
       },
-      "estimated_days": { "name": "Estimated days left" },
-      "confidence": { "name": "Prediction confidence" }
+      "stage_remaining_liters": { "name": "{stage_name} water remaining" },
+      "stage_remaining_days": { "name": "{stage_name} estimated days left" },
+      "stage_health_score": { "name": "{stage_name} overall health" }
     },
     "binary_sensor": {
       "water_leak_alarm": { "name": "Water leak alarm" },
-      "filter_replace": { "name": "Filter replacement alert" },
-      "sensor_fault": { "name": "Flow sensor fault" }
+      "sensor_fault": { "name": "Flow sensor fault" },
+      "stage_replace_required": { "name": "{stage_name} replacement alert" }
     },
     "button": {
-      "reset_filter": { "name": "Reset filter" },
       "clear_alarm": { "name": "Dismiss leak alarm" },
-      "smart_water_filter_export_backup": { "name": "Export pretty backup" }
+      "smart_water_filter_export_backup": { "name": "Export pretty backup" },
+      "stage_reset": { "name": "Reset {stage_name}" }
     },
     "number": {
-      "filter_capacity": { "name": "Cartridge capacity limit" },
-      "filter_max_age": { "name": "Cartridge life limit" },
-      "pulses_per_liter": { "name": "Sensor calibration factor" }
+      "pulses_per_liter": { "name": "Sensor calibration factor" },
+      "stage_capacity": { "name": "{stage_name} capacity limit" },
+      "stage_max_age": { "name": "{stage_name} lifespan limit" }
     },
     "select": {
       "replacement_reason": {
         "name": "Replacement reason selection",
         "state": {
-          "routine": "Routine / Routine",
-          "taste": "Taste / Zapach i smak",
-          "clogged": "Clogging / Zapchanie",
-          "time": "Time / Upływ czasu"
+          "routine": "Routine",
+          "taste": "Taste & Odor",
+          "clogged": "Clogging",
+          "time": "Time Limit"
         }
       },
       "leak_detection_mode": {

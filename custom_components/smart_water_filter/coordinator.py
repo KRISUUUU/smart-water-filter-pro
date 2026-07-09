@@ -11,6 +11,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+try:
+    from homeassistant.util.text import slugify
+except ImportError:
+    import re
+    def slugify(text: str) -> str:
+        """Fallback slugify for test environment."""
+        text = text.lower()
+        text = re.sub(r"[^\w\s-]", "", text)
+        text = re.sub(r"[\s-]+", "_", text)
+        return text.strip("_")
 
 from .const import (
     DOMAIN,
@@ -24,7 +34,7 @@ from .const import (
     EMA_ALPHA,
 )
 from .flow_engine import FlowEngine
-from .filter_engine import FilterEngine
+from .filter_engine import FilterEngine, FilterStage
 from .statistics import StatisticsEngine
 from .predictor import FilterPredictor
 from .leak_engine import LeakEngine
@@ -92,16 +102,8 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         ))
 
         # Instantiate engines
-        filt_data = stored.get("filter", {})
-        self.filter_engine = FilterEngine(
-            capacity_liters=filt_data.get("capacity", DEFAULT_CAPACITY),
-            used_liters=filt_data.get("used", 0.0),
-            installed_date=filt_data.get("installed_date"),
-            max_age_days=filt_data.get("max_age_days", 365.0),
-            baseline_flow_rate=filt_data.get("baseline_flow_rate", 0.0),
-            recent_max_flow_rate=filt_data.get("recent_max_flow_rate", 0.0),
-            history=filt_data.get("history"),
-        )
+        stages_data = stored.get("stages", [])
+        self.filter_engine = FilterEngine(stages_data)
 
         stats_data = stored.get("statistics", {})
         self.statistics_engine = StatisticsEngine(
@@ -210,7 +212,7 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             if flow_rate > FLOW_MIN_THRESHOLD and dt > 0.0:
                 self.active_time_seconds += dt
 
-            # Record usage in filter
+            # Record usage in all filter stages
             self.filter_engine.record_usage(delta_liters, flow_rate)
 
         # Update leak engine
@@ -245,17 +247,6 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _build_coordinator_data(self) -> Dict[str, Any]:
         """Synthesize metrics from all internal engines for HA entities."""
-        # Calculate predicted days and confidence
-        predictor = FilterPredictor(self.filter_engine.capacity_liters, self.filter_engine.used_liters)
-        daily_ema = self.statistics_engine.ema_7
-        
-        remaining_days = predictor.predict_remaining_days(
-            daily_usage_ema=daily_ema,
-            age_days=self.filter_engine.age_days,
-            max_age_days=self.filter_engine.max_age_days
-        )
-        confidence = predictor.calculate_confidence(self.statistics_engine.daily_history)
-
         # Diagnose sensor health
         sensor_health_state = "good"
         time_since_pulse = 0.0
@@ -267,6 +258,37 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         source_state = self.hass.states.get(self.source_sensor) if self.source_sensor else None
         if source_state and source_state.state in ("unknown", "unavailable"):
             sensor_health_state = "offline"
+
+        daily_ema = self.statistics_engine.ema_7
+
+        stages_dict = {}
+        for stage in self.filter_engine.stages.values():
+            predictor = FilterPredictor(stage.capacity_liters, stage.used_liters)
+            remaining_days = predictor.predict_remaining_days(
+                daily_usage_ema=daily_ema,
+                age_days=stage.age_days,
+                max_age_days=stage.max_age_days
+            )
+            confidence = predictor.calculate_confidence(self.statistics_engine.daily_history)
+            stages_dict[stage.id] = {
+                "id": stage.id,
+                "name": stage.name,
+                "type": stage.type,
+                "capacity_liters": stage.capacity_liters,
+                "used_liters": round(stage.used_liters, 2),
+                "remaining_liters": round(stage.remaining_liters, 2),
+                "percentage": round(stage.percentage, 1),
+                "max_age_days": stage.max_age_days,
+                "age_days": stage.age_days,
+                "installed_date": stage.installed_date,
+                "flow_degradation": stage.flow_degradation,
+                "clogging_status": stage.clogging_status,
+                "health_score": stage.health_score,
+                "health_status": stage.health_status,
+                "history": stage.history,
+                "estimated_days": remaining_days,
+                "confidence": confidence,
+            }
 
         return {
             "lifetime_total_liters": round(self.lifetime_total_liters, 2),
@@ -280,18 +302,8 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "active_time_minutes": round(self.active_time_seconds / 60.0, 1),
             "last_flow_time": self.last_flow_time.isoformat() if self.last_flow_time else None,
             
-            # Filter engine metrics
-            "filter_capacity_liters": self.filter_engine.capacity_liters,
-            "filter_used_liters": round(self.filter_engine.used_liters, 2),
-            "filter_remaining_liters": round(self.filter_engine.remaining_liters, 2),
-            "filter_percentage": round(self.filter_engine.percentage, 1),
-            "filter_installed_date": self.filter_engine.installed_date,
-            "filter_max_age_days": self.filter_engine.max_age_days,
-            "filter_flow_degradation": self.filter_engine.flow_degradation,
-            "filter_clogging_status": self.filter_engine.clogging_status,
-            "filter_health_score": self.filter_engine.health_score,
-            "filter_health_status": self.filter_engine.health_status,
-            "filter_history": self.filter_engine.history,
+            # Stages mapping
+            "stages": stages_dict,
             
             # Statistics
             "daily_history": self.statistics_engine.daily_history,
@@ -299,10 +311,6 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
             "sma_7": self.statistics_engine.sma_7,
             "ema_7": self.statistics_engine.ema_7,
             "usage_trend": self.statistics_engine.usage_trend,
-            
-            # Predictions
-            "estimated_days": remaining_days,
-            "confidence": confidence,
             
             # Leak engine
             "leak_alarm_active": self.leak_engine.alarm_active,
@@ -326,7 +334,7 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     async def async_save_state(self) -> None:
         """Write current engine configuration and histories to persistent storage."""
         data = {
-            "filter": self.filter_engine.to_dict(),
+            "stages": self.filter_engine.to_list(),
             "statistics": self.statistics_engine.to_dict(),
             "calibration": {
                 "pulses_per_liter": self.pulses_per_liter,
@@ -349,14 +357,55 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         await self.storage.save(data)
 
     # Programmatic service actions
-    async def async_reset_filter(self, new_capacity: float = None, reason: str = "manual") -> None:
-        """Reset the water filter usage counters and archive current filter details."""
-        cap = new_capacity if new_capacity is not None else self.filter_engine.capacity_liters
-        self.filter_engine.reset_filter(cap, reason)
+    async def async_add_filter_stage(
+        self,
+        name: str,
+        stage_type: str,
+        capacity_liters: float = 3000.0,
+        max_age_days: float = 365.0,
+    ) -> None:
+        """Inject a new stage dynamically and reload integration to configure entities."""
+        stage = self.filter_engine.add_stage(
+            name=name,
+            stage_type=stage_type,
+            capacity_liters=capacity_liters,
+            max_age_days=max_age_days,
+        )
+        self.event_logger.log_event(
+            "stage_added",
+            f"Added filter stage: {name} (type: {stage_type}, capacity: {capacity_liters} L)",
+            {"stage_id": stage.id, "name": name, "type": stage_type}
+        )
+        await self.async_save_state()
+        await self.async_request_refresh()
+        await self.hass.config_entries.async_reload(self.entry.entry_id)
+
+    async def async_remove_filter_stage(self, stage_id: str) -> None:
+        """Remove a stage dynamically and reload integration."""
+        removed = self.filter_engine.remove_stage(stage_id)
+        if removed:
+            self.event_logger.log_event(
+                "stage_removed",
+                f"Removed filter stage: {removed.name} ({stage_id})",
+                {"stage_id": stage_id, "name": removed.name}
+            )
+            await self.async_save_state()
+            await self.async_request_refresh()
+            await self.hass.config_entries.async_reload(self.entry.entry_id)
+
+    async def async_reset_filter(self, stage_id: str, new_capacity: float = None, reason: str = "manual") -> None:
+        """Reset the water filter usage counters for a specific stage and log details."""
+        if stage_id not in self.filter_engine.stages:
+            _LOGGER.error("Cannot reset filter stage: stage %s not found", stage_id)
+            return
+
+        stage = self.filter_engine.stages[stage_id]
+        cap = new_capacity if new_capacity is not None else stage.capacity_liters
+        stage.reset_filter(cap, reason)
         self.event_logger.log_event(
             "filter_reset",
-            f"Water filter has been reset. Capacity: {cap} L, Reason: {reason}",
-            {"capacity": cap, "reason": reason}
+            f"Filter stage '{stage.name}' ({stage_id}) reset. Capacity: {cap} L, Reason: {reason}",
+            {"stage_id": stage_id, "capacity": cap, "reason": reason}
         )
         await self.async_save_state()
         await self.async_request_refresh()
@@ -371,17 +420,19 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         await self.async_save_state()
         await self.async_request_refresh()
 
-    async def async_set_filter_capacity(self, capacity: float) -> None:
-        """Set the target capacity for the water filter."""
-        self.filter_engine.capacity_liters = float(capacity)
-        await self.async_save_state()
-        await self.async_request_refresh()
+    async def async_set_filter_capacity(self, stage_id: str, capacity: float) -> None:
+        """Set the target capacity for a specific stage."""
+        if stage_id in self.filter_engine.stages:
+            self.filter_engine.stages[stage_id].capacity_liters = float(capacity)
+            await self.async_save_state()
+            await self.async_request_refresh()
 
-    async def async_set_filter_max_age(self, max_age_days: float) -> None:
-        """Set the maximum age limit for the filter."""
-        self.filter_engine.max_age_days = float(max_age_days)
-        await self.async_save_state()
-        await self.async_request_refresh()
+    async def async_set_filter_max_age(self, stage_id: str, max_age_days: float) -> None:
+        """Set the maximum age limit for a specific stage."""
+        if stage_id in self.filter_engine.stages:
+            self.filter_engine.stages[stage_id].max_age_days = float(max_age_days)
+            await self.async_save_state()
+            await self.async_request_refresh()
 
     async def async_set_replacement_reason(self, reason: str) -> None:
         """Update the selected replacement reason state."""
@@ -453,7 +504,7 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 counter += 1
 
         export_data = {
-            "filter": self.filter_engine.to_dict(),
+            "stages": self.filter_engine.to_list(),
             "statistics": self.statistics_engine.to_dict(),
             "calibration": {
                 "pulses_per_liter": self.pulses_per_liter,
