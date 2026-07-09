@@ -22,8 +22,8 @@ class SmartWaterBaseEntity(CoordinatorEntity[SmartWaterCoordinator]):
         # Bind all entities under a unified device registry card
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.entry.entry_id)},
-            name="Smart Water Filter",
-            manufacturer="Antigravity PRO",
-            model="Filter Engine v4",
+            name="Smart Water Filter PRO",
+            manufacturer="KRISUUUU",
+            model="PRO Hardware Tier",
             sw_version="4.3.1",
         )
