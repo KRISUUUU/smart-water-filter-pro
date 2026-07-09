@@ -28,6 +28,7 @@ from .const import (
     CONF_SOURCE_TYPE,
     CONF_PULSES_PER_LITER,
     SOURCE_TYPE_PULSES,
+    SOURCE_TYPE_LITERS,
     FLOW_MIN_THRESHOLD,
     DEFAULT_CAPACITY,
     DEFAULT_PULSES_PER_LITER,
@@ -151,13 +152,33 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         now = datetime.now()
 
         # Timeout check: If water stopped flowing, reset flow rate to 0
-        if self.last_pulse_received_time:
-            idle_duration = (now - self.last_pulse_received_time).total_seconds()
-            if idle_duration > 15.0 and self.current_flow_rate > 0.0:
-                self.current_flow_rate = 0.0
-                self.flow_engine.current_flow_rate = 0.0
-                self.leak_engine.analyze(0.0, now)
-                await self.async_save_state()
+        if self.source_type == SOURCE_TYPE_LITERS:
+            source_state = self.hass.states.get(self.source_sensor) if self.source_sensor else None
+            val = 0.0
+            if source_state and source_state.state not in ("unknown", "unavailable"):
+                try:
+                    val = float(source_state.state)
+                except ValueError:
+                    pass
+
+            if val <= 0.0:
+                if self.current_flow_rate > 0.0:
+                    self.current_flow_rate = 0.0
+                    self.flow_engine.current_flow_rate = 0.0
+                    self.leak_engine.analyze(0.0, now)
+                    await self.async_save_state()
+            else:
+                self.current_flow_rate = val * 1.0
+                self.flow_engine.current_flow_rate = val * 1.0
+                self.leak_engine.analyze(self.current_flow_rate, now)
+        else:
+            if self.last_pulse_received_time:
+                idle_duration = (now - self.last_pulse_received_time).total_seconds()
+                if idle_duration > 15.0 and self.current_flow_rate > 0.0:
+                    self.current_flow_rate = 0.0
+                    self.flow_engine.current_flow_rate = 0.0
+                    self.leak_engine.analyze(0.0, now)
+                    await self.async_save_state()
 
         # Run overnight/no-flow date and hour rollovers
         self._check_rollovers(now)
@@ -198,7 +219,19 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 delta_pulses = val - last_pulses if val >= last_pulses else val
                 self.calibration_engine.add_pulses(delta_pulses)
         else:
-            delta_liters, flow_rate = self.flow_engine.update_liters(val, now)
+            if val <= 0.0:
+                flow_rate = 0.0
+            else:
+                flow_rate = val * 1.0
+
+            if self.flow_engine.last_time is None:
+                delta_liters = 0.0
+            else:
+                delta_liters = flow_rate * (dt / 60.0)
+
+            self.flow_engine.current_flow_rate = flow_rate
+            self.flow_engine.last_time = now
+            self.current_flow_rate = flow_rate
 
         # Accumulate metrics if we got new volume
         if delta_liters > 0.0:
@@ -214,6 +247,9 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
             # Record usage in all filter stages
             self.filter_engine.record_usage(delta_liters, flow_rate)
+        elif self.source_type == SOURCE_TYPE_LITERS:
+            self.current_flow_rate = flow_rate
+            self.flow_engine.current_flow_rate = flow_rate
 
         # Update leak engine
         self.leak_engine.analyze(self.current_flow_rate, now)

@@ -9,6 +9,10 @@ The Smart Water Filter PRO integration (v5.0.0) is engineered for high-density m
 ### Local Push Ingestion
 Rather than polling the hardware node, the integration subscribes directly to state changes of the configured source entities (e.g., `sensor.water_flow_rate` or `sensor.water_pulses` exposed by ESPHome). 
 
+The coordinator handles two distinct ingestion modes based on the source sensor type:
+- **Pulse-Counting Mode (`pulses`)**: Ingests raw sensor pulses, converting them to volume and flow rate via the `FlowEngine`'s moving average filters.
+- **Direct Liters Flow Mode (`liters`)**: Ingests pre-calculated flow rates directly (in L/min), bypassing the pulse counter logic and EMA smoothing calculations entirely. When flow drops to `0.0`, the system instantly overrides all flow telemetry to `0.0` to clear ghost values and prevent hanging.
+
 The flow sensor on the ESP32 pushes state updates to Home Assistant via the native ESPHome API over a persistent TCP socket. Within Home Assistant, the `SmartWaterCoordinator` (inheriting from `DataUpdateCoordinator`) hooks directly into the Home Assistant state machine.
 
 ```

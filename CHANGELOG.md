@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.1] - 2026-07-09
+### Fixed
+- **Direct Liters Flow Processing**: Fixed a critical bug in `coordinator.py` where `SOURCE_TYPE_LITERS` flow rate values (e.g. from ESPHome) were treated as cumulative pulse deltas. Now sets the flow rate directly bypassing the flow engine's cumulative logic.
+- **Immediate Zero Flow Override**: Enforced immediate resetting of `current_flow_rate` and `flow_engine.current_flow_rate` to `0.0` when the direct liters sensor state drops to `0.0` or less, completely bypassing the EMA filter to prevent hanging and ghost flow rates.
+
 ## [5.0.0] - 2026-07-09
 ### Added
 - **Multi-Stage Filtration Engine**: Refactored the core engine to support cascading filter stages. Exposes `smart_water_filter.add_filter_stage` and `smart_water_filter.remove_filter_stage` service actions.

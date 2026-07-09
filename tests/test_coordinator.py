@@ -183,3 +183,101 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(new_coordinator.today_used_liters, 1.0)
         self.assertGreater(new_coordinator.current_flow_rate, 0.0)
         self.assertEqual(new_coordinator.filter_engine.stages["main_filter"].used_liters, 1.0)
+
+    async def test_coordinator_liters_mode(self) -> None:
+        """Test coordinator behavior when configured with SOURCE_TYPE_LITERS."""
+        # 1. Create mocks for HA and config entry
+        mock_hass = MagicMock()
+        mock_hass.states.get.return_value = None
+        
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_456"
+        mock_entry.title = "Water Filter Liters"
+        mock_entry.data = {
+            "name": "Smart Water Filter",
+            "source_sensor": "sensor.water_flow_rate",
+            "source_type": "liters",
+            "pulses_per_liter": 1.0,
+        }
+        mock_entry.options = {}
+
+        # 2. Instantiate coordinator
+        coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
+
+        # Mock underlying storage store load/save
+        storage_data = {
+            "stages": [
+                {
+                    "id": "main_filter",
+                    "name": "Main Filter",
+                    "type": "custom",
+                    "capacity_liters": 3000.0,
+                    "used_liters": 0.0,
+                    "installed_date": "2026-07-01T00:00:00",
+                    "baseline_flow_rate": 0.0,
+                    "recent_max_flow_rate": 0.0,
+                    "history": []
+                }
+            ]
+        }
+        async def mock_load():
+            return storage_data
+        async def mock_save(data):
+            nonlocal storage_data
+            storage_data = data
+            return None
+
+        coordinator.storage.store.async_load = AsyncMock(side_effect=mock_load)
+        coordinator.storage.store.async_save = AsyncMock(side_effect=mock_save)
+
+        # 3. Setup coordinator
+        await coordinator.async_setup()
+        coordinator.last_date_str = "2026-07-08"
+
+        # Check default loaded states
+        self.assertEqual(coordinator.lifetime_total_liters, 0.0)
+        self.assertEqual(coordinator.current_flow_rate, 0.0)
+        self.assertEqual(coordinator.source_type, "liters")
+
+        # 4. Inject positive flow rate (e.g., 1.5 L/min) at t0
+        state0 = MagicMock()
+        state0.state = "1.5"
+        
+        t0_time = datetime(2026, 7, 8, 12, 0, 0)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t0_time
+            coordinator._process_source_state(state0)
+            
+        # At t0, dt is 0 since last_time was None (it sets last_time to t0)
+        self.assertEqual(coordinator.lifetime_total_liters, 0.0)
+        self.assertEqual(coordinator.current_flow_rate, 1.5)
+        self.assertEqual(coordinator.flow_engine.current_flow_rate, 1.5)
+
+        # 5. Inject flow rate of 1.5 L/min at t1 (10 seconds later)
+        # Volume consumed: 1.5 L/min * (10s / 60s) = 0.25 Liters
+        state1 = MagicMock()
+        state1.state = "1.5"
+        
+        t1_time = datetime(2026, 7, 8, 12, 0, 10)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t1_time
+            coordinator._process_source_state(state1)
+
+        self.assertEqual(coordinator.lifetime_total_liters, 0.25)
+        self.assertEqual(coordinator.current_flow_rate, 1.5)
+        self.assertEqual(coordinator.flow_engine.current_flow_rate, 1.5)
+
+        # 6. Inject flow rate of 0.0 L/min (drops to zero)
+        # It should immediately set current_flow_rate to 0.0, bypassing EMA
+        state2 = MagicMock()
+        state2.state = "0.0"
+        
+        t2_time = datetime(2026, 7, 8, 12, 0, 20)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t2_time
+            coordinator._process_source_state(state2)
+
+        self.assertEqual(coordinator.current_flow_rate, 0.0)
+        self.assertEqual(coordinator.flow_engine.current_flow_rate, 0.0)
+        # Lifetime total liters should not increase since flow rate was 0.0 during this step
+        self.assertEqual(coordinator.lifetime_total_liters, 0.25)
