@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 import voluptuous as vol
 
 from .const import (
@@ -34,7 +35,6 @@ class SmartWaterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Prevent configuring duplicates
             source = user_input[CONF_SOURCE_SENSOR]
             await self.async_set_unique_id(source)
             self._abort_if_unique_id_configured()
@@ -44,17 +44,19 @@ class SmartWaterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=user_input,
             )
 
-        # Get list of sensor entities in the system
         entities = self.hass.states.async_entity_ids("sensor")
 
         schema = vol.Schema({
-            vol.Required(CONF_SOURCE_SENSOR): vol.In(entities),
-            vol.Required(CONF_SOURCE_TYPE, default=SOURCE_TYPE_PULSES): {
-                "select": {
-                    "options": [SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
-                    "translation_key": "source_type",
-                }
-            },
+            vol.Required(CONF_SOURCE_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(CONF_SOURCE_TYPE, default=SOURCE_TYPE_PULSES): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
+                    translation_key="source_type",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Required(CONF_PULSES_PER_LITER, default=DEFAULT_PULSES_PER_LITER): vol.Coerce(float),
         })
 
@@ -101,19 +103,21 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             elif action == "edit_stage":
                 return await self.async_step_edit_stage()
 
+        # POPRAWKA: Użycie oficjalnego SelectSelector zamiast surowego słownika
         schema = vol.Schema({
-            vol.Required("action"): {
-                "select": {
-                    "options": [
+            vol.Required("action"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
                         "sensor_leak_settings",
                         "calibrate_sensor",
                         "add_stage",
                         "remove_stage",
                         "edit_stage",
                     ],
-                    "translation_key": "options_action",
-                }
-            }
+                    translation_key="options_action",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
         })
 
         return self.async_show_form(step_id="init", data_schema=schema)
@@ -125,7 +129,6 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
 
         if user_input is not None:
-            # Update coordinator settings immediately
             coordinator.source_sensor = user_input[CONF_SOURCE_SENSOR]
             coordinator.source_type = user_input[CONF_SOURCE_TYPE]
             coordinator.pulses_per_liter = user_input[CONF_PULSES_PER_LITER]
@@ -135,10 +138,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             await coordinator.async_set_replacement_reason(user_input["replacement_reason"])
             await coordinator.async_save_state()
 
-            # Save options flow to trigger config entry reload
             return self.async_create_entry(title="", data=user_input)
-
-        entities = self.hass.states.async_entity_ids("sensor")
 
         current_sensor = self.config_entry.options.get(
             CONF_SOURCE_SENSOR,
@@ -156,26 +156,31 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         current_reason = coordinator.current_replacement_reason
 
         schema = vol.Schema({
-            vol.Required(CONF_SOURCE_SENSOR, default=current_sensor): vol.In(entities),
-            vol.Required(CONF_SOURCE_TYPE, default=current_type): {
-                "select": {
-                    "options": [SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
-                    "translation_key": "source_type",
-                }
-            },
+            vol.Required(CONF_SOURCE_SENSOR, default=current_sensor): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(CONF_SOURCE_TYPE, default=current_type): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
+                    translation_key="source_type",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Required(CONF_PULSES_PER_LITER, default=current_pulses): vol.Coerce(float),
-            vol.Required("leak_detection_mode", default=current_leak_mode): {
-                "select": {
-                    "options": ["standard", "kitchen_ro", "away", "disabled"],
-                    "translation_key": "leak_detection_mode",
-                }
-            },
-            vol.Required("replacement_reason", default=current_reason): {
-                "select": {
-                    "options": ["routine", "taste", "clogged", "time"],
-                    "translation_key": "replacement_reason",
-                }
-            },
+            vol.Required("leak_detection_mode", default=current_leak_mode): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["standard", "kitchen_ro", "away", "disabled"],
+                    translation_key="leak_detection_mode",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required("replacement_reason", default=current_reason): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["routine", "taste", "clogged", "time"],
+                    translation_key="replacement_reason",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         })
 
         return self.async_show_form(step_id="sensor_leak_settings", data_schema=schema)
@@ -187,14 +192,12 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
 
         if user_input is not None:
-            # Snapshot start pulses
             state = self.hass.states.get(coordinator.source_sensor)
             try:
                 self.calibration_start_pulses = float(state.state) if state else 0.0
             except ValueError:
                 self.calibration_start_pulses = 0.0
 
-            # Signal coordinator to start tracking calibration runs
             await coordinator.async_start_calibration()
             return await self.async_step_calibration_stop()
 
@@ -214,12 +217,11 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             except ValueError:
                 end_pulses = 0.0
 
-            # Calculate factor from snapshot
             start_pulses = getattr(self, "calibration_start_pulses", 0.0)
             if end_pulses >= start_pulses:
                 delta_pulses = end_pulses - start_pulses
             else:
-                delta_pulses = end_pulses  # Handle wrap-around/reset
+                delta_pulses = end_pulses
 
             if volume > 0.05 and delta_pulses > 5.0:
                 new_factor = round(delta_pulses / volume, 2)
@@ -229,11 +231,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                 new_options = {**self.config_entry.options, CONF_PULSES_PER_LITER: new_factor}
                 self.hass.config_entries.async_update_entry(self.config_entry, options=new_options)
                 await coordinator.async_save_state()
-
-                # Force reload config entry immediately to apply settings
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
-            # Signal finish to coordinator calibration tracker
             await coordinator.async_finish_calibration(volume)
             return self.async_create_entry(title="", data=self.config_entry.options)
 
@@ -256,7 +255,6 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                 self.temp_stage_name = name
                 return await self.async_step_add_stage_custom()
             
-            # Preset types: use defaults
             defaults = {
                 "carbon": (4000.0, 365.0, "Carbon Filter"),
                 "capillary": (5000.0, 365.0, "Capillary Filter"),
@@ -274,13 +272,15 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             )
             return self.async_create_entry(title="", data=self.config_entry.options)
 
+        # POPRAWKA: Selektor dla preset_type
         schema = vol.Schema({
-            vol.Required("preset_type"): {
-                "select": {
-                    "options": ["carbon", "capillary", "sediment", "custom"],
-                    "translation_key": "preset_type",
-                }
-            },
+            vol.Required("preset_type"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["carbon", "capillary", "sediment", "custom"],
+                    translation_key="preset_type",
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             vol.Optional("name"): str,
         })
 
@@ -307,8 +307,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         default_name = self.temp_stage_name or ""
         schema = vol.Schema({
             vol.Required("name", default=default_name): str,
-            vol.Required("capacity_liters"): vol.Coerce(int),
-            vol.Required("max_age_days"): vol.Coerce(int),
+            vol.Required("capacity_liters", default=6000): vol.Coerce(int),
+            vol.Required("max_age_days", default=365): vol.Coerce(int),
         })
 
         return self.async_show_form(step_id="add_stage_custom", data_schema=schema)
@@ -328,15 +328,19 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         if not stages:
             return self.async_abort(reason="no_stages")
 
+        # POPRAWKA: Selector dla dynamicznych obiektów
+        options = [
+            {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
+            for sid, s in stages.items()
+        ]
+
         schema = vol.Schema({
-            vol.Required("stage_id"): {
-                "select": {
-                    "options": [
-                        {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
-                        for sid, s in stages.items()
-                    ]
-                }
-            },
+            vol.Required("stage_id"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         })
 
         return self.async_show_form(step_id="remove_stage", data_schema=schema)
@@ -355,15 +359,19 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         if not stages:
             return self.async_abort(reason="no_stages")
 
+        # POPRAWKA: Selector dla dynamicznych obiektów
+        options = [
+            {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
+            for sid, s in stages.items()
+        ]
+
         schema = vol.Schema({
-            vol.Required("stage_id"): {
-                "select": {
-                    "options": [
-                        {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
-                        for sid, s in stages.items()
-                    ]
-                }
-            },
+            vol.Required("stage_id"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
         })
 
         return self.async_show_form(step_id="edit_stage", data_schema=schema)

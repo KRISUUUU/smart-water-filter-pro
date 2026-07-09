@@ -63,9 +63,10 @@ class SmartWaterButton(SmartWaterBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        if self.entity_description_key == "clear_alarm":
+        # POPRAWKA: Zmiana self.entity_description_key na self.entity_description.key
+        if self.entity_description.key == "clear_alarm":
             await self.coordinator.async_clear_alarm()
-        elif self.entity_description_key == "smart_water_filter_export_backup":
+        elif self.entity_description.key == "smart_water_filter_export_backup":
             await self.coordinator.async_export_backup_file()
 
 class SmartWaterStageButton(SmartWaterBaseEntity, ButtonEntity):

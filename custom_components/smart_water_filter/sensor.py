@@ -149,6 +149,7 @@ class SmartWaterSensor(SmartWaterBaseEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         val = self.entity_description.value_fn(self.coordinator.data)
+        # POPRAWKA: Zmiana self.entity_description_key na self.entity_description.key
         if self.entity_description.key == "water_usage_trend":
             if val not in ("stable", "increasing", "decreasing"):
                 return "stable"
