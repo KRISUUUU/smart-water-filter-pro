@@ -1,0 +1,111 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Smart Water Filter PRO",
+        "data": {
+          "source_sensor": "Source Sensor Entity",
+          "source_type": "Measurement Mode",
+          "pulses_per_liter": "Calibration Factor (pulses/L)",
+          "initial_capacity": "Cartridge Capacity (liters)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This source sensor is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options for Smart Water Filter PRO",
+        "data": {
+          "source_sensor": "Source Sensor Entity",
+          "source_type": "Measurement Mode",
+          "pulses_per_liter": "Calibration Factor (pulses/L)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_total_liters": { "name": "Lifetime water usage" },
+      "water_today_liters": { "name": "Today's water usage" },
+      "water_current_flow": { "name": "Current flow rate" },
+      "water_average_flow": { "name": "Average flow rate" },
+      "active_time_minutes": { "name": "Active flow duration" },
+      "last_flow_time": { "name": "Last flow timestamp" },
+      "filter_capacity": { "name": "Filter capacity" },
+      "filter_used": { "name": "Filter water used" },
+      "filter_remaining": { "name": "Filter water remaining" },
+      "filter_percentage": { "name": "Filter life percentage" },
+      "filter_max_age": { "name": "Filter age limit" },
+      "filter_age_days": { "name": "Filter age" },
+      "filter_flow_degradation": { "name": "Peak flow drop" },
+      "filter_clogging_status": {
+        "name": "Clogging status",
+        "state": {
+          "normal": "Normal",
+          "warning": "Warning",
+          "restricted": "Restricted"
+        }
+      },
+      "filter_health_score": { "name": "Overall filter health" },
+      "filter_health": {
+        "name": "Filter health status",
+        "state": {
+          "excellent": "Excellent",
+          "good": "Good",
+          "fair": "Fair",
+          "replace_soon": "Replace soon",
+          "replace_now": "Replace now"
+        }
+      },
+      "water_usage_trend": {
+        "name": "Usage trend",
+        "state": {
+          "stable": "Stable",
+          "increasing": "Increasing",
+          "decreasing": "Decreasing"
+        }
+      },
+      "estimated_days": { "name": "Estimated days left" },
+      "confidence": { "name": "Prediction confidence" }
+    },
+    "binary_sensor": {
+      "water_leak_alarm": { "name": "Water leak alarm" },
+      "filter_replace": { "name": "Filter replacement alert" },
+      "sensor_fault": { "name": "Flow sensor fault" }
+    },
+    "button": {
+      "reset_filter": { "name": "Reset filter" },
+      "clear_alarm": { "name": "Dismiss leak alarm" },
+      "smart_water_filter_export_backup": { "name": "Export pretty backup" }
+    },
+    "number": {
+      "filter_capacity": { "name": "Cartridge capacity limit" },
+      "filter_max_age": { "name": "Cartridge life limit" },
+      "pulses_per_liter": { "name": "Sensor calibration factor" }
+    },
+    "select": {
+      "replacement_reason": {
+        "name": "Replacement reason selection",
+        "state": {
+          "routine": "Routine / Routine",
+          "taste": "Taste / Zapach i smak",
+          "clogged": "Clogging / Zapchanie",
+          "time": "Time / Upływ czasu"
+        }
+      },
+      "leak_detection_mode": {
+        "name": "Leak detection sensitivity profile",
+        "state": {
+          "standard": "Standard profile",
+          "kitchen_ro": "Kitchen & RO profile",
+          "away": "Away profile (Strict)",
+          "disabled": "Disabled"
+        }
+      }
+    }
+  }
+}

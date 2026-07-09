@@ -1,0 +1,27 @@
+# Python runtime components
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# ESPHome Configuration Secrets
+# NEVER commit secrets.yaml containing actual network/passwords credentials.
+esphome/secrets.yaml
+# esphome/secrets.yaml.example is tracked as a boilerplate template.
+
+# IDEs and virtual environments
+.vscode/
+.idea/
+venv/
+env/
+.env

@@ -1,0 +1,13 @@
+# ESPHome YF-S201 pulses counter configuration
+sensor:
+  - platform: pulse_counter
+    pin:
+      number: GPIO22
+      mode: INPUT_PULLUP
+    name: "Flow pulses count"
+    id: flow_pulses
+    update_interval: 1s
+    total:
+      name: "Total pulses cumulative"
+      id: total_pulses
+      state_class: total_increasing

@@ -1,0 +1,142 @@
+"""Unit tests for the Smart Water Filter Coordinator."""
+import sys
+from unittest.mock import MagicMock, AsyncMock, patch
+
+# Define custom mock base classes to avoid MagicMock inheritance method shadowing
+class MockDataUpdateCoordinator:
+    def __init__(self, hass, logger, name, update_interval=None) -> None:
+        self.hass = hass
+        self.logger = logger
+        self.name = name
+        self.update_interval = update_interval
+        self.data = {}
+
+    @classmethod
+    def __class_getitem__(cls, item) -> type:
+        return cls
+
+    async def async_request_refresh(self) -> None:
+        pass
+
+    def async_set_updated_data(self, data) -> None:
+        self.data = data
+
+# Mock Home Assistant and voluptuous before importing smart_water_filter
+sys.modules['homeassistant'] = MagicMock()
+sys.modules['homeassistant.config_entries'] = MagicMock()
+sys.modules['homeassistant.core'] = MagicMock()
+sys.modules['homeassistant.helpers'] = MagicMock()
+sys.modules['homeassistant.helpers.storage'] = MagicMock()
+sys.modules['homeassistant.helpers.event'] = MagicMock()
+
+# Setup update_coordinator module with real classes
+mock_coord_module = MagicMock()
+mock_coord_module.DataUpdateCoordinator = MockDataUpdateCoordinator
+mock_coord_module.UpdateFailed = Exception
+sys.modules['homeassistant.helpers.update_coordinator'] = mock_coord_module
+
+sys.modules['homeassistant.components'] = MagicMock()
+sys.modules['homeassistant.components.sensor'] = MagicMock()
+sys.modules['homeassistant.components.binary_sensor'] = MagicMock()
+sys.modules['homeassistant.components.button'] = MagicMock()
+sys.modules['homeassistant.components.number'] = MagicMock()
+sys.modules['homeassistant.components.select'] = MagicMock()
+sys.modules['homeassistant.const'] = MagicMock()
+sys.modules['voluptuous'] = MagicMock()
+
+import unittest
+from datetime import datetime
+from smart_water_filter.coordinator import SmartWaterCoordinator
+
+class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
+    """Test suite for Coordinator lifecycle and operations."""
+
+    async def test_coordinator_lifecycle(self) -> None:
+        # 1. Create mocks for HA and config entry
+        mock_hass = MagicMock()
+        mock_hass.states.get.return_value = None
+        
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_123"
+        mock_entry.title = "Water Filter"
+        mock_entry.data = {
+            "name": "Smart Water Filter",
+            "source_sensor": "sensor.water_pulses",
+            "source_type": "pulses",
+            "pulses_per_liter": 450.0,
+        }
+        mock_entry.options = {}
+
+        # 2. Instantiate coordinator
+        coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
+
+        # Mock underlying storage store load/save
+        storage_data = {}
+        async def mock_load():
+            return storage_data
+        async def mock_save(data):
+            nonlocal storage_data
+            storage_data = data
+            return None
+
+        coordinator.storage.store.async_load = AsyncMock(side_effect=mock_load)
+        coordinator.storage.store.async_save = AsyncMock(side_effect=mock_save)
+
+        # 3. Setup coordinator
+        await coordinator.async_setup()
+        coordinator.last_date_str = "2026-07-08"
+
+        # Check default loaded states
+        self.assertEqual(coordinator.lifetime_total_liters, 0.0)
+        self.assertEqual(coordinator.today_used_liters, 0.0)
+        self.assertEqual(coordinator.current_flow_rate, 0.0)
+        self.assertEqual(coordinator.pulses_per_liter, 450.0)
+
+        # 4. Inject pulses
+        # Create a mock state representing 100 pulses at t0
+        state0 = MagicMock()
+        state0.state = "100"
+        
+        t0_time = datetime(2026, 7, 8, 12, 0, 0)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t0_time
+            coordinator._process_source_state(state0)
+            
+        self.assertEqual(coordinator.lifetime_total_liters, 0.0) # Delta is 0 on t0
+        self.assertEqual(coordinator.flow_engine.last_pulse_count, 100.0)
+
+        # Inject 550 pulses at t1 (delta 450 pulses = 1.0 Liters)
+        state1 = MagicMock()
+        state1.state = "550"
+        
+        now_time = datetime(2026, 7, 8, 12, 0, 10) # 10 seconds later
+        
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            # mock datetime.now() inside coordinator
+            mock_dt.now.return_value = now_time
+            coordinator._process_source_state(state1)
+
+        # Verify volume and flow calculations
+        self.assertEqual(coordinator.lifetime_total_liters, 1.0)
+        self.assertEqual(coordinator.today_used_liters, 1.0)
+        self.assertGreater(coordinator.current_flow_rate, 0.0)
+
+        # 5. Save state
+        await coordinator.async_save_state()
+        
+        # Verify saved data structure is v4 nested schema
+        self.assertIn("totals", storage_data)
+        self.assertEqual(storage_data["totals"]["lifetime_liters"], 1.0)
+        self.assertEqual(storage_data["totals"]["today_liters"], 1.0)
+        self.assertGreater(storage_data["totals"]["filtered_flow_rate"], 0.0)
+
+        # 6. Reload from storage
+        new_coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
+        new_coordinator.storage.store.async_load = AsyncMock(side_effect=mock_load)
+        
+        await new_coordinator.async_setup()
+
+        # 7. Verify totals restored
+        self.assertEqual(new_coordinator.lifetime_total_liters, 1.0)
+        self.assertEqual(new_coordinator.today_used_liters, 1.0)
+        self.assertGreater(new_coordinator.current_flow_rate, 0.0)

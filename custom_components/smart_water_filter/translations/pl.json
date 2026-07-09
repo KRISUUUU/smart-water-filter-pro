@@ -1,0 +1,111 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja Smart Water Filter PRO",
+        "data": {
+          "source_sensor": "Encja czujnika źródłowego",
+          "source_type": "Tryb pomiaru",
+          "pulses_per_liter": "Współczynnik kalibracji (impulsy/L)",
+          "initial_capacity": "Wydajność filtra (litry)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Ten czujnik źródłowy został już skonfigurowany."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Smart Water Filter PRO",
+        "data": {
+          "source_sensor": "Encja czujnika źródłowego",
+          "source_type": "Tryb pomiaru",
+          "pulses_per_liter": "Współczynnik kalibracji (impulsy/L)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_total_liters": { "name": "Całkowite zużycie wody" },
+      "water_today_liters": { "name": "Dzisiejsze zużycie wody" },
+      "water_current_flow": { "name": "Chwilowy przepływ wody" },
+      "water_average_flow": { "name": "Średni przepływ wody" },
+      "active_time_minutes": { "name": "Czas trwania przepływu" },
+      "last_flow_time": { "name": "Czas ostatniego przepływu" },
+      "filter_capacity": { "name": "Wydajność filtra" },
+      "filter_used": { "name": "Zużyta pojemność filtra" },
+      "filter_remaining": { "name": "Pozostała pojemność filtra" },
+      "filter_percentage": { "name": "Procentowa żywotność filtra" },
+      "filter_max_age": { "name": "Maksymalny wiek filtra" },
+      "filter_age_days": { "name": "Wiek filtra" },
+      "filter_flow_degradation": { "name": "Spadek przepływu maksymalnego" },
+      "filter_clogging_status": {
+        "name": "Status zapchania",
+        "state": {
+          "normal": "Normalny",
+          "warning": "Ostrzeżenie",
+          "restricted": "Ograniczony"
+        }
+      },
+      "filter_health_score": { "name": "Ogólna kondycja filtra" },
+      "filter_health": {
+        "name": "Status kondycji filtra",
+        "state": {
+          "excellent": "Doskonała",
+          "good": "Dobra",
+          "fair": "Przeciętna",
+          "replace_soon": "Wymień wkrótce",
+          "replace_now": "Wymień natychmiast"
+        }
+      },
+      "water_usage_trend": {
+        "name": "Trend zużycia",
+        "state": {
+          "stable": "Stabilny",
+          "increasing": "Rosnący",
+          "decreasing": "Malejący"
+        }
+      },
+      "estimated_days": { "name": "Szacowane dni do wymiany" },
+      "confidence": { "name": "Pewność szacowania" }
+    },
+    "binary_sensor": {
+      "water_leak_alarm": { "name": "Alarm wycieku wody" },
+      "filter_replace": { "name": "Alert wymiany filtra" },
+      "sensor_fault": { "name": "Awaria czujnika przepływu" }
+    },
+    "button": {
+      "reset_filter": { "name": "Resetuj filtr" },
+      "clear_alarm": { "name": "Wycisz alarm wycieku" },
+      "smart_water_filter_export_backup": { "name": "Eksportuj kopię zapasową" }
+    },
+    "number": {
+      "filter_capacity": { "name": "Limit pojemności wkłądu" },
+      "filter_max_age": { "name": "Limit wieku wkładu" },
+      "pulses_per_liter": { "name": "Współczynnik kalibracji czujnika" }
+    },
+    "select": {
+      "replacement_reason": {
+        "name": "Powód wymiany wkładu",
+        "state": {
+          "routine": "Rutynowa wymiana",
+          "taste": "Zapach i smak",
+          "clogged": "Zapchanie filtra",
+          "time": "Upływ czasu"
+        }
+      },
+      "leak_detection_mode": {
+        "name": "Profil czułości wykrywania wycieków",
+        "state": {
+          "standard": "Profil standardowy",
+          "kitchen_ro": "Profil kuchenny i RO",
+          "away": "Profil poza domem (Rygorystyczny)",
+          "disabled": "Wyłączony"
+        }
+      }
+    }
+  }
+}

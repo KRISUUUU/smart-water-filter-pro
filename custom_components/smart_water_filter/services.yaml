@@ -1,0 +1,69 @@
+reset_filter:
+  name: Reset filter
+  description: Reset filter consumption stats and register replacement event details.
+  fields:
+    capacity:
+      name: New Capacity
+      description: Target volume capacity in liters of the new cartridge.
+      required: false
+      selector:
+        number:
+          min: 100
+          max: 20000
+          step: 50
+          unit_of_measurement: L
+    reason:
+      name: Replacement Reason
+      description: Reason why the filter is reset.
+      required: false
+      default: manual
+      selector:
+        select:
+          options:
+            - routine
+            - taste
+            - clogged
+            - time
+
+clear_alarm:
+  name: Clear leak alarm
+  description: Clear active water leak alarm manually.
+
+start_calibration:
+  name: Start calibration
+  description: Begin interactive flow sensor pulse calibration run. Accumulates pulses.
+
+finish_calibration:
+  name: Finish calibration
+  description: End pulse calibration, compute and update pulses per liter factor.
+  fields:
+    actual_volume:
+      name: Actual Volume
+      description: Measured actual water volume in liters.
+      required: true
+      selector:
+        number:
+          min: 0.1
+          max: 100.0
+          step: 0.1
+          unit_of_measurement: L
+
+set_leak_mode:
+  name: Set leak detection mode
+  description: Adjust the sensitivity profile of the leak engine.
+  fields:
+    mode:
+      name: Sensitivity Profile
+      description: Set standard, kitchen_ro, away, or disabled leak detection profile.
+      required: true
+      selector:
+        select:
+          options:
+            - standard
+            - kitchen_ro
+            - away
+            - disabled
+
+export_history:
+  name: Export usage history
+  description: Return data dictionary containing event records and filter replacement statistics.

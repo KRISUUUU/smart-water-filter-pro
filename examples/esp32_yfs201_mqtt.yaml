@@ -1,0 +1,13 @@
+# ESPHome YF-S201 MQTT pulse count transmitter config
+mqtt:
+  broker: 192.168.1.10
+  topic_prefix: water_filter
+
+sensor:
+  - platform: pulse_counter
+    pin: GPIO22
+    name: "MQTT Flow pulses"
+    id: mqtt_flow_pulses
+    update_interval: 1s
+    filters:
+      - debounce: 10ms

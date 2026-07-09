@@ -1,0 +1,15 @@
+# ESPHome YF-S201 native configuration
+esphome:
+  name: water-meter
+
+esp32:
+  board: esp32dev
+
+sensor:
+  - platform: pulse_counter
+    pin: GPIO22
+    name: "Water pulses"
+    id: water_pulses
+    update_interval: 1s
+    filters:
+      - debounce: 10ms
