@@ -17,3 +17,22 @@ DEFAULT_CAPACITY = 3000.0
 FLOW_MIN_THRESHOLD = 0.01
 EMA_ALPHA = 0.2
 MAX_EVENTS = 500
+
+def localize_stage_name(hass, stage_name: str) -> str:
+    """Localize stage names if they match default presets."""
+    if not hass:
+        return stage_name
+    lang = getattr(hass.config, "language", "en")
+    if lang == "pl":
+        mapping = {
+            "Carbon Filter": "Wkład węglowy",
+            "Capillary Filter": "Wkład kapilarny",
+            "Sediment Filter": "Wkład sedymentacyjny",
+            "Filter Stage": "Stopień filtracji",
+            "carbon": "węglowy",
+            "capillary": "kapilarny",
+            "sediment": "sedymentacyjny",
+            "custom": "własny",
+        }
+        return mapping.get(stage_name, stage_name)
+    return stage_name

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, localize_stage_name
 from .entity import SmartWaterBaseEntity
 from .coordinator import SmartWaterCoordinator
 
@@ -87,7 +87,9 @@ class SmartWaterStageButton(SmartWaterBaseEntity, ButtonEntity):
         # Override unique ID and translation config
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_reset"
         self._attr_translation_key = "stage_reset"
-        self._attr_translation_placeholders = {"stage_name": stage_name}
+        self._attr_translation_placeholders = {
+            "stage_name": localize_stage_name(coordinator.hass, stage_name)
+        }
         self._attr_entity_category = EntityCategory.CONFIG
 
     async def async_press(self) -> None:

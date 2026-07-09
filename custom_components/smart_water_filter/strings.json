@@ -65,6 +65,17 @@
           "capacity_liters": "Volumetric Capacity (liters)",
           "max_age_days": "Lifespan Limit (days)"
         }
+      },
+      "calibration_start": {
+        "title": "Start Calibration",
+        "description": "Pour exactly 5 liters of water through the sensor, then press Next."
+      },
+      "calibration_stop": {
+        "title": "Finish Calibration",
+        "description": "Input the exact volume of water you poured.",
+        "data": {
+          "volume_liters": "Water Volume (liters)"
+        }
       }
     },
     "abort": {
@@ -105,6 +116,47 @@
       "pulses_per_liter": { "name": "Sensor calibration factor" },
       "stage_capacity": { "name": "{stage_name} capacity limit" },
       "stage_max_age": { "name": "{stage_name} lifespan limit" }
+    }
+  },
+  "selector": {
+    "options_action": {
+      "options": {
+        "sensor_leak_settings": "Configure Flow & Leak Settings",
+        "calibrate_sensor": "Calibrate Flow Sensor",
+        "add_stage": "Add New Filter Stage",
+        "remove_stage": "Remove Filter Stage",
+        "edit_stage": "View/Edit Filter Stages"
+      }
+    },
+    "source_type": {
+      "options": {
+        "pulses": "Pulse Counter (EMA)",
+        "liters": "Direct Volume (Liters)"
+      }
+    },
+    "leak_detection_mode": {
+      "options": {
+        "standard": "Standard Profile",
+        "kitchen_ro": "Kitchen Reverse Osmosis",
+        "away": "Away Mode",
+        "disabled": "Disabled"
+      }
+    },
+    "replacement_reason": {
+      "options": {
+        "routine": "Routine Replacement",
+        "taste": "Taste / Odor Degradation",
+        "clogged": "Clogged / Flow Drop",
+        "time": "Time Limit Reached"
+      }
+    },
+    "preset_type": {
+      "options": {
+        "carbon": "Carbon Filter",
+        "capillary": "Capillary Filter",
+        "sediment": "Sediment Filter",
+        "custom": "Custom Filter Stage"
+      }
     }
   }
 }

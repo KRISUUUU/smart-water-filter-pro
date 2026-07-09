@@ -17,6 +17,7 @@ from .const import (
     SOURCE_TYPE_PULSES,
     SOURCE_TYPE_LITERS,
     DEFAULT_PULSES_PER_LITER,
+    localize_stage_name,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,10 +49,12 @@ class SmartWaterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema({
             vol.Required(CONF_SOURCE_SENSOR): vol.In(entities),
-            vol.Required(CONF_SOURCE_TYPE, default=SOURCE_TYPE_PULSES): vol.In([
-                SOURCE_TYPE_PULSES,
-                SOURCE_TYPE_LITERS,
-            ]),
+            vol.Required(CONF_SOURCE_TYPE, default=SOURCE_TYPE_PULSES): {
+                "select": {
+                    "options": [SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
+                    "translation_key": "source_type",
+                }
+            },
             vol.Required(CONF_PULSES_PER_LITER, default=DEFAULT_PULSES_PER_LITER): vol.Coerce(float),
         })
 
@@ -79,6 +82,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         self.selected_stage_id: str | None = None
         self.temp_preset_type: str | None = None
         self.temp_stage_name: str | None = None
+        self.calibration_start_pulses: float = 0.0
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -88,6 +92,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             action = user_input["action"]
             if action == "sensor_leak_settings":
                 return await self.async_step_sensor_leak_settings()
+            elif action == "calibrate_sensor":
+                return await self.async_step_calibration_start()
             elif action == "add_stage":
                 return await self.async_step_add_stage()
             elif action == "remove_stage":
@@ -96,12 +102,18 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_edit_stage()
 
         schema = vol.Schema({
-            vol.Required("action"): vol.In({
-                "sensor_leak_settings": "Configure Flow & Leak Settings",
-                "add_stage": "Add New Filter Stage",
-                "remove_stage": "Remove Filter Stage",
-                "edit_stage": "View/Edit Filter Stages"
-            })
+            vol.Required("action"): {
+                "select": {
+                    "options": [
+                        "sensor_leak_settings",
+                        "calibrate_sensor",
+                        "add_stage",
+                        "remove_stage",
+                        "edit_stage",
+                    ],
+                    "translation_key": "options_action",
+                }
+            }
         })
 
         return self.async_show_form(step_id="init", data_schema=schema)
@@ -145,20 +157,91 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
 
         schema = vol.Schema({
             vol.Required(CONF_SOURCE_SENSOR, default=current_sensor): vol.In(entities),
-            vol.Required(CONF_SOURCE_TYPE, default=current_type): vol.In([
-                SOURCE_TYPE_PULSES,
-                SOURCE_TYPE_LITERS,
-            ]),
+            vol.Required(CONF_SOURCE_TYPE, default=current_type): {
+                "select": {
+                    "options": [SOURCE_TYPE_PULSES, SOURCE_TYPE_LITERS],
+                    "translation_key": "source_type",
+                }
+            },
             vol.Required(CONF_PULSES_PER_LITER, default=current_pulses): vol.Coerce(float),
-            vol.Required("leak_detection_mode", default=current_leak_mode): vol.In([
-                "standard", "kitchen_ro", "away", "disabled"
-            ]),
-            vol.Required("replacement_reason", default=current_reason): vol.In([
-                "routine", "taste", "clogged", "time"
-            ]),
+            vol.Required("leak_detection_mode", default=current_leak_mode): {
+                "select": {
+                    "options": ["standard", "kitchen_ro", "away", "disabled"],
+                    "translation_key": "leak_detection_mode",
+                }
+            },
+            vol.Required("replacement_reason", default=current_reason): {
+                "select": {
+                    "options": ["routine", "taste", "clogged", "time"],
+                    "translation_key": "replacement_reason",
+                }
+            },
         })
 
         return self.async_show_form(step_id="sensor_leak_settings", data_schema=schema)
+
+    async def async_step_calibration_start(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Start dynamic flow sensor calibration."""
+        coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+        if user_input is not None:
+            # Snapshot start pulses
+            state = self.hass.states.get(coordinator.source_sensor)
+            try:
+                self.calibration_start_pulses = float(state.state) if state else 0.0
+            except ValueError:
+                self.calibration_start_pulses = 0.0
+
+            # Signal coordinator to start tracking calibration runs
+            await coordinator.async_start_calibration()
+            return await self.async_step_calibration_stop()
+
+        return self.async_show_form(step_id="calibration_start")
+
+    async def async_step_calibration_stop(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Finish dynamic flow sensor calibration and update settings."""
+        coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+        if user_input is not None:
+            volume = user_input["volume_liters"]
+            state = self.hass.states.get(coordinator.source_sensor)
+            try:
+                end_pulses = float(state.state) if state else 0.0
+            except ValueError:
+                end_pulses = 0.0
+
+            # Calculate factor from snapshot
+            start_pulses = getattr(self, "calibration_start_pulses", 0.0)
+            if end_pulses >= start_pulses:
+                delta_pulses = end_pulses - start_pulses
+            else:
+                delta_pulses = end_pulses  # Handle wrap-around/reset
+
+            if volume > 0.05 and delta_pulses > 5.0:
+                new_factor = round(delta_pulses / volume, 2)
+                coordinator.pulses_per_liter = new_factor
+                coordinator.flow_engine.pulses_per_liter = new_factor
+
+                new_options = {**self.config_entry.options, CONF_PULSES_PER_LITER: new_factor}
+                self.hass.config_entries.async_update_entry(self.config_entry, options=new_options)
+                await coordinator.async_save_state()
+
+                # Force reload config entry immediately to apply settings
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            # Signal finish to coordinator calibration tracker
+            await coordinator.async_finish_calibration(volume)
+            return self.async_create_entry(title="", data=self.config_entry.options)
+
+        schema = vol.Schema({
+            vol.Required("volume_liters", default=5.0): vol.Coerce(float),
+        })
+
+        return self.async_show_form(step_id="calibration_stop", data_schema=schema)
 
     async def async_step_add_stage(
         self, user_input: dict[str, Any] | None = None
@@ -192,7 +275,12 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self.config_entry.options)
 
         schema = vol.Schema({
-            vol.Required("preset_type"): vol.In(["carbon", "capillary", "sediment", "custom"]),
+            vol.Required("preset_type"): {
+                "select": {
+                    "options": ["carbon", "capillary", "sediment", "custom"],
+                    "translation_key": "preset_type",
+                }
+            },
             vol.Optional("name"): str,
         })
 
@@ -236,16 +324,19 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             await coordinator.async_remove_filter_stage(stage_id)
             return self.async_create_entry(title="", data=self.config_entry.options)
 
-        stages = {
-            sid: f"{s.name} ({s.type})"
-            for sid, s in coordinator.filter_engine.stages.items()
-        }
-
+        stages = coordinator.filter_engine.stages
         if not stages:
             return self.async_abort(reason="no_stages")
 
         schema = vol.Schema({
-            vol.Required("stage_id"): vol.In(stages),
+            vol.Required("stage_id"): {
+                "select": {
+                    "options": [
+                        {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
+                        for sid, s in stages.items()
+                    ]
+                }
+            },
         })
 
         return self.async_show_form(step_id="remove_stage", data_schema=schema)
@@ -260,16 +351,19 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             self.selected_stage_id = user_input["stage_id"]
             return await self.async_step_edit_stage_details()
 
-        stages = {
-            sid: f"{s.name} ({s.type})"
-            for sid, s in coordinator.filter_engine.stages.items()
-        }
-
+        stages = coordinator.filter_engine.stages
         if not stages:
             return self.async_abort(reason="no_stages")
 
         schema = vol.Schema({
-            vol.Required("stage_id"): vol.In(stages),
+            vol.Required("stage_id"): {
+                "select": {
+                    "options": [
+                        {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
+                        for sid, s in stages.items()
+                    ]
+                }
+            },
         })
 
         return self.async_show_form(step_id="edit_stage", data_schema=schema)

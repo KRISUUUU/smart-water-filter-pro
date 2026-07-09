@@ -1,0 +1,64 @@
+blueprint:
+  name: Smart Water Filter PRO Notifications
+  description: Get push notifications when a water leak is detected or a filtration stage requires replacement.
+  domain: automation
+  input:
+    leak_sensor:
+      name: Leak Sensor
+      description: The binary sensor entity tracking water leaks (e.g. binary_sensor.water_leak_alarm).
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: moisture
+    health_sensors:
+      name: Health Score Sensors
+      description: Choose one or more stage health score percentage sensors (e.g. sensor.carbon_filter_health_score).
+      default: []
+      selector:
+        entity:
+          domain: sensor
+          multiple: true
+    notify_service:
+      name: Notification Action / Service
+      description: The service to send notifications to (e.g. notify.notify or notify.mobile_app_your_phone).
+      selector:
+        action: {}
+    warning_health_threshold:
+      name: Low Health Alert Threshold
+      description: Trigger an alert when any stage health score percentage drops below this level.
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 50
+          unit_of_measurement: "%"
+          mode: slider
+
+trigger:
+  - platform: state
+    entity_id: !input leak_sensor
+    to: "on"
+    id: leak_detected
+  - platform: numeric_state
+    entity_id: !input health_sensors
+    below: !input warning_health_threshold
+    id: health_low
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: leak_detected
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "⚠️ CRITICAL LEAK ALARM"
+              message: "A water leak has been detected by the Smart Water Filter PRO system! Immediate action required."
+      - conditions:
+          - condition: trigger
+            id: health_low
+        sequence:
+          - service: !input notify_service
+            data:
+              title: "🔧 Filter Replacement Warning"
+              message: "One of your filtration stages has dropped below {{ trigger.below }}% health score. Please plan to replace the cartridge."

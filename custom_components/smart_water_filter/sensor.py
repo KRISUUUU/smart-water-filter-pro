@@ -19,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, localize_stage_name
 from .entity import SmartWaterBaseEntity
 from .coordinator import SmartWaterCoordinator
 
@@ -172,11 +172,12 @@ class SmartWaterStageSensor(SmartWaterBaseEntity, SensorEntity):
         self.stage_name = stage_name
         self.metric = metric
         
-        # Override unique ID, name, and translations
+        # Override unique ID and translations
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_{metric}"
-        self._attr_name = f"{stage_name} {description.name}"
         self._attr_translation_key = f"stage_{metric}"
-        self._attr_translation_placeholders = {"stage_name": stage_name}
+        self._attr_translation_placeholders = {
+            "stage_name": localize_stage_name(coordinator.hass, stage_name)
+        }
 
     @property
     def native_value(self) -> Any:
