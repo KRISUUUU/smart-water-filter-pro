@@ -380,6 +380,31 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         await self.async_request_refresh()
         await self.hass.config_entries.async_reload(self.entry.entry_id)
 
+    async def async_remove_stage_entities(self, stage_id: str) -> None:
+        """Remove all entities associated with a specific stage_id from the registry."""
+        try:
+            from homeassistant.helpers import entity_registry as er
+            from homeassistant.helpers import device_registry as dr
+
+            ent_reg = er.async_get(self.hass)
+            dev_reg = dr.async_get(self.hass)
+
+            # Find and remove entities
+            unique_id_prefix = f"{self.entry.entry_id}_{stage_id}_"
+            entities_to_remove = [
+                entry.entity_id
+                for entry in er.async_entries_for_config_entry(ent_reg, self.entry.entry_id)
+                if entry.unique_id.startswith(unique_id_prefix)
+            ]
+            for entity_id in entities_to_remove:
+                try:
+                    ent_reg.async_remove(entity_id)
+                    _LOGGER.info("Removed orphaned entity from registry: %s", entity_id)
+                except KeyError:
+                    pass
+        except Exception as err:
+            _LOGGER.error("Error during stage entities cleanup: %s", err)
+
     async def async_remove_filter_stage(self, stage_id: str) -> None:
         """Remove a stage dynamically and reload integration."""
         removed = self.filter_engine.remove_stage(stage_id)
@@ -390,6 +415,7 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 {"stage_id": stage_id, "name": removed.name}
             )
             await self.async_save_state()
+            await self.async_remove_stage_entities(stage_id)
             await self.async_request_refresh()
             await self.hass.config_entries.async_reload(self.entry.entry_id)
 

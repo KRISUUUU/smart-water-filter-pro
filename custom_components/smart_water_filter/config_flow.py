@@ -219,8 +219,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         default_name = self.temp_stage_name or ""
         schema = vol.Schema({
             vol.Required("name", default=default_name): str,
-            vol.Required("capacity_liters", default=3000.0): vol.Coerce(float),
-            vol.Required("max_age_days", default=365): vol.Coerce(int),
+            vol.Required("capacity_liters"): vol.Coerce(int),
+            vol.Required("max_age_days"): vol.Coerce(int),
         })
 
         return self.async_show_form(step_id="add_stage_custom", data_schema=schema)

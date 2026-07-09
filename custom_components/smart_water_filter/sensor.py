@@ -85,15 +85,18 @@ GLOBAL_SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
 STAGE_SENSOR_DESCRIPTIONS = {
     "remaining_liters": SensorEntityDescription(
         key="stage_remaining_liters",
+        name="water remaining",
         native_unit_of_measurement=UnitOfVolume.LITERS,
         device_class=SensorDeviceClass.WATER,
     ),
     "estimated_days": SensorEntityDescription(
         key="stage_remaining_days",
+        name="estimated days left",
         native_unit_of_measurement=UnitOfTime.DAYS,
     ),
     "health_score": SensorEntityDescription(
         key="stage_health_score",
+        name="overall health",
         native_unit_of_measurement="%",
     ),
 }
@@ -135,14 +138,21 @@ class SmartWaterSensor(SmartWaterBaseEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, description.key)
         self.entity_description = description
-        if description.device_class == SensorDeviceClass.ENUM:
+        if description.key == "water_usage_trend":
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = ["stable", "increasing", "decreasing"]
+        elif description.device_class == SensorDeviceClass.ENUM:
             self._attr_device_class = SensorDeviceClass.ENUM
             self._attr_options = description.options
 
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        return self.entity_description.value_fn(self.coordinator.data)
+        val = self.entity_description.value_fn(self.coordinator.data)
+        if self.entity_description.key == "water_usage_trend":
+            if val not in ("stable", "increasing", "decreasing"):
+                return "stable"
+        return val
 
 class SmartWaterStageSensor(SmartWaterBaseEntity, SensorEntity):
     """Smart Water Filter Stage-Specific Sensor."""
@@ -162,8 +172,9 @@ class SmartWaterStageSensor(SmartWaterBaseEntity, SensorEntity):
         self.stage_name = stage_name
         self.metric = metric
         
-        # Override unique ID and translations using HAs deterministic stages guidelines
+        # Override unique ID, name, and translations
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_{metric}"
+        self._attr_name = f"{stage_name} {description.name}"
         self._attr_translation_key = f"stage_{metric}"
         self._attr_translation_placeholders = {"stage_name": stage_name}
 
