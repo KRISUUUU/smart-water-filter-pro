@@ -20,8 +20,9 @@ class MockConfigFlow:
         pass
 
 class MockOptionsFlow:
-    def __init__(self, config_entry) -> None:
-        self.config_entry = config_entry
+    def __init__(self, config_entry=None) -> None:
+        if not hasattr(self, "config_entry") or config_entry is not None:
+            self.config_entry = config_entry
         self.hass = None
 
     def async_create_entry(self, title, data):

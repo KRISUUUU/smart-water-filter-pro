@@ -75,7 +75,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        super().__init__(config_entry)
+        self.config_entry = config_entry
+        super().__init__()
         self.selected_stage_id: str | None = None
         self.temp_preset_type: str | None = None
         self.temp_stage_name: str | None = None

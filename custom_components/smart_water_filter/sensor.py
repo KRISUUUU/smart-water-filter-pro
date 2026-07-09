@@ -135,6 +135,9 @@ class SmartWaterSensor(SmartWaterBaseEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, description.key)
         self.entity_description = description
+        if description.device_class == SensorDeviceClass.ENUM:
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = description.options
 
     @property
     def native_value(self) -> Any:
