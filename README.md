@@ -1,10 +1,12 @@
+<p align="center">
+  <img src="docs/images/banner.png" alt="Smart Water Filter PRO Banner" width="100%">
+</p>
+
+
 [![Status: Beta | v4.3.1](https://img.shields.io/badge/Status-Beta%20%7C%20v4.3.1-blue.svg)](https://github.com/custom-components/smart_water_filter)
 [![Platform: ESPHome & Home Assistant Core](https://img.shields.io/badge/Platform-ESPHome%20%26%20Home%20Assistant%20Core-orange.svg)](https://esphome.io)
 [![Architecture: Local-First Monorepo](https://img.shields.io/badge/Architecture-Local--First%20Monorepo-green.svg)](docs/architecture.md)
 
-<p align="center">
-  <img src="docs/images/banner.png" alt="Smart Water Filter PRO Banner" width="100%">
-</p>
 
 # Smart Water Filter PRO (v4.3.1)
 
@@ -75,6 +77,18 @@ Refer to the production-grade documentation files inside `docs/` for deep implem
 - [**Hardware Specification & ESPHome Config** (docs/hardware_esphome.md)](docs/hardware_esphome.md): Diagram of ESP32 wiring, YF-S201 connections, pull-ups, and microcontroller calculations.
 
 ---
+
+### ⚠️ CRITICAL CONFIGURATION NOTE: Measurement Mode Selection
+
+During the initial configuration setup flow, you will be prompted to select the **Measurement Mode** (`source_type`):
+
+1. **Liters Mode (`liters`) [RECOMMENDED FOR THIS MONOREPO]:**
+   Select this if your source sensor is already computing cumulative water volume (like the native `sensor.water_total_volume` provided in our `ESP32.md` configuration). This bypasses Python-side processing and maps the data 1:1 with hardware-precision Riemann sums.
+   
+2. **Pulses Mode (`pulses`):**
+   Select this **ONLY** if your ESPHome configuration passes a raw, un-calculated pulse counter stream directly to Home Assistant. In this mode, the integration will divide incoming state changes by your specified *Calibration Factor* (e.g., 450.0).
+
+> **Deployment Warning:** Choosing `pulses` while targeting a sensor that already outputs calculated volume (Liters) will result in a **450x under-reporting error** in your analytics and statistics engines. Ensure your hardware tier output aligns with your software ingestion rules.
 
 ## HACS Installation Walk-through
 
