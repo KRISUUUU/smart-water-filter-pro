@@ -81,7 +81,8 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
         mock_entry.entry_id = "test_entry_123"
         mock_entry.options = {}
         
-        flow = SmartWaterOptionsFlow(mock_entry)
+        flow = SmartWaterOptionsFlow()
+        flow.config_entry = mock_entry
         flow.hass = MagicMock()
         
         # Test step_init GET form
@@ -101,7 +102,8 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
         mock_entry.entry_id = "test_entry_123"
         mock_entry.options = {}
         
-        flow = SmartWaterOptionsFlow(mock_entry)
+        flow = SmartWaterOptionsFlow()
+        flow.config_entry = mock_entry
         flow.hass = MagicMock()
         
         mock_coordinator = MagicMock()

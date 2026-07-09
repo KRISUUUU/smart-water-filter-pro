@@ -43,7 +43,7 @@
         "title": "Dodaj własny stopień filtracji",
         "data": {
           "name": "Nazwa stopnia",
-          "capacity": "Wydajność w litrach",
+          "capacity_liters": "Wydajność w litrach",
           "max_age_days": "Limit czasu (dni)"
         }
       },
@@ -62,7 +62,7 @@
       "edit_stage_details": {
         "title": "Edytuj parametry stopnia",
         "data": {
-          "capacity": "Wydajność w litrach",
+          "capacity_liters": "Wydajność w litrach",
           "max_age_days": "Limit czasu (dni)"
         }
       }

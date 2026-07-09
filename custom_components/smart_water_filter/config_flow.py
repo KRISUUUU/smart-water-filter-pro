@@ -67,15 +67,14 @@ class SmartWaterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> SmartWaterOptionsFlow:
         """Get the options flow for this entry."""
-        return SmartWaterOptionsFlow(config_entry)
+        return SmartWaterOptionsFlow()
 
 
 class SmartWaterOptionsFlow(config_entries.OptionsFlow):
     """Handle options updates for Smart Water Filter."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
         super().__init__()
         self.selected_stage_id: str | None = None
         self.temp_preset_type: str | None = None
@@ -205,7 +204,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         """Add a custom filter stage with manual capacity and max age."""
         if user_input is not None:
             name = user_input["name"]
-            cap = user_input["capacity"]
+            cap = user_input["capacity_liters"]
             max_age = user_input["max_age_days"]
 
             coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
@@ -220,7 +219,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         default_name = self.temp_stage_name or ""
         schema = vol.Schema({
             vol.Required("name", default=default_name): str,
-            vol.Required("capacity", default=3000.0): vol.Coerce(float),
+            vol.Required("capacity_liters", default=3000.0): vol.Coerce(float),
             vol.Required("max_age_days", default=365): vol.Coerce(int),
         })
 
@@ -283,14 +282,14 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         stage = coordinator.filter_engine.stages[self.selected_stage_id]
 
         if user_input is not None:
-            cap = user_input["capacity"]
+            cap = user_input["capacity_liters"]
             max_age = user_input["max_age_days"]
             await coordinator.async_set_filter_capacity(self.selected_stage_id, cap)
             await coordinator.async_set_filter_max_age(self.selected_stage_id, max_age)
             return self.async_create_entry(title="", data=self.config_entry.options)
 
         schema = vol.Schema({
-            vol.Required("capacity", default=stage.capacity_liters): vol.Coerce(float),
+            vol.Required("capacity_liters", default=stage.capacity_liters): vol.Coerce(float),
             vol.Required("max_age_days", default=int(stage.max_age_days)): vol.Coerce(int),
         })
 

@@ -43,7 +43,7 @@
         "title": "Add Custom Filter Stage",
         "data": {
           "name": "Stage Name",
-          "capacity": "Volumetric Capacity (liters)",
+          "capacity_liters": "Volumetric Capacity (liters)",
           "max_age_days": "Lifespan Limit (days)"
         }
       },
@@ -62,7 +62,7 @@
       "edit_stage_details": {
         "title": "Edit Filter Stage Parameters",
         "data": {
-          "capacity": "Volumetric Capacity (liters)",
+          "capacity_liters": "Volumetric Capacity (liters)",
           "max_age_days": "Lifespan Limit (days)"
         }
       }
