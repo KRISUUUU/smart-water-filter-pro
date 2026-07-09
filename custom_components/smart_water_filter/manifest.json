@@ -5,7 +5,8 @@
   "integration_type": "hub",
   "iot_class": "local_push",
   "config_flow": true,
-  "documentation": "https://github.com/local/smart_water_filter",
+  "documentation": "https://github.com/KRISUUUU/smart-water-filter-pro",
+  "issue_tracker": "https://github.com/KRISUUUU/smart-water-filter-pro/issues",
   "requirements": [],
-  "codeowners": ["@local"]
+  "codeowners": ["@KRISUUUU"]
 }
