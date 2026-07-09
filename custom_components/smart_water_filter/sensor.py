@@ -76,6 +76,7 @@ GLOBAL_SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
     SmartWaterSensorEntityDescription(
         key="water_usage_trend",
         translation_key="water_usage_trend",
+        device_class=SensorDeviceClass.ENUM,
         options=["stable", "increasing", "decreasing"],
         value_fn=lambda data: data["usage_trend"],
     ),
