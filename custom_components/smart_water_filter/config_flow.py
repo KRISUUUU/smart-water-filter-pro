@@ -138,7 +138,6 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             coordinator.flow_engine.pulses_per_liter = user_input[CONF_PULSES_PER_LITER]
             
             await coordinator.async_set_leak_detection_mode(user_input["leak_detection_mode"])
-            await coordinator.async_set_replacement_reason(user_input["replacement_reason"])
             await coordinator.async_save_state()
 
             return self.async_create_entry(title="", data=user_input)
@@ -156,7 +155,6 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             self.config_entry.data.get(CONF_PULSES_PER_LITER, DEFAULT_PULSES_PER_LITER)
         )
         current_leak_mode = coordinator.leak_engine.detection_mode
-        current_reason = coordinator.current_replacement_reason
 
         schema = vol.Schema({
             vol.Required(CONF_SOURCE_SENSOR, default=current_sensor): selector.EntitySelector(
@@ -174,13 +172,6 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                 selector.SelectSelectorConfig(
                     options=["standard", "kitchen_ro", "away", "disabled"],
                     translation_key="leak_detection_mode",
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-            vol.Required("replacement_reason", default=current_reason): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=["routine", "taste", "clogged", "time"],
-                    translation_key="replacement_reason",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -434,7 +425,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             stage_id = user_input["stage_id"]
-            await coordinator.async_reset_filter(stage_id, reason=coordinator.current_replacement_reason)
+            reason = user_input.get("reason", "routine")
+            await coordinator.async_reset_filter(stage_id, reason=reason)
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
             return self.async_create_entry(title="", data=self.config_entry.options)
 
@@ -451,6 +443,13 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             vol.Required("stage_id"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required("reason", default="routine"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["routine", "taste", "clogged", "time"],
+                    translation_key="replacement_reason",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),

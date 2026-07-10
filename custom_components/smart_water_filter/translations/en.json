@@ -115,9 +115,27 @@
       "stage_health_score": { "name": "Health: {stage_name}" }
     },
     "binary_sensor": {
-      "water_leak_alarm": { "name": "Water leak alarm" },
-      "sensor_fault": { "name": "Flow sensor fault" },
-      "stage_replace_required": { "name": "{stage_name} replacement alert" }
+      "water_leak_alarm": {
+        "name": "Water leak alarm",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "sensor_fault": {
+        "name": "Flow sensor fault",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "stage_replace_required": {
+        "name": "Filter needs replacement: {stage_name}",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      }
     },
     "button": {
       "clear_alarm": { "name": "Dismiss leak alarm" },

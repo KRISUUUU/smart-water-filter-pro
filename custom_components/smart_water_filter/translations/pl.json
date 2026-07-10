@@ -115,9 +115,27 @@
       "stage_health_score": { "name": "Kondycja: {stage_name}" }
     },
     "binary_sensor": {
-      "water_leak_alarm": { "name": "Alarm wycieku wody" },
-      "sensor_fault": { "name": "Awaria czujnika przepływu" },
-      "stage_replace_required": { "name": "Alert wymiany wkładu {stage_name}" }
+      "water_leak_alarm": {
+        "name": "Alarm wycieku wody",
+        "state": {
+          "on": "Tak",
+          "off": "Nie"
+        }
+      },
+      "sensor_fault": {
+        "name": "Awaria czujnika przepływu",
+        "state": {
+          "on": "Tak",
+          "off": "Nie"
+        }
+      },
+      "stage_replace_required": {
+        "name": "Filtr do wymiany: {stage_name}",
+        "state": {
+          "on": "Tak",
+          "off": "Nie"
+        }
+      }
     },
     "button": {
       "clear_alarm": { "name": "Wycisz alarm wycieku" },

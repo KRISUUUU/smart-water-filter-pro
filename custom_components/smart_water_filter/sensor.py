@@ -85,18 +85,18 @@ GLOBAL_SENSOR_DESCRIPTIONS: list[SmartWaterSensorEntityDescription] = [
 STAGE_SENSOR_DESCRIPTIONS = {
     "remaining_liters": SensorEntityDescription(
         key="stage_remaining_liters",
-        name="water remaining",
+        name=None,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         device_class=SensorDeviceClass.WATER,
     ),
     "estimated_days": SensorEntityDescription(
         key="stage_remaining_days",
-        name="estimated days left",
+        name=None,
         native_unit_of_measurement=UnitOfTime.DAYS,
     ),
     "health_score": SensorEntityDescription(
         key="stage_health_score",
-        name="overall health",
+        name=None,
         native_unit_of_measurement="%",
     ),
 }

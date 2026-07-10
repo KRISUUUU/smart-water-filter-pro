@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stage Reset Options Flow**: Removed `SmartWaterStageButton` entity from `button.py` and moved filter resets to options flow step `reset_stage` in `config_flow.py` with dynamic translations.
 - **Hardware Rebranding**: Rebranded "PRO Hardware Tier" references to "ESP32 Ultra-Flow Sentinel Node" across source code and markdown documentation.
 - **UI Simplification & Number Removal**: Removed the `number` platform entirely, taking capacity limits, lifespan limits, and flow sensor calibration factors off the device dashboard to keep it clutter-free.
-- **Cleaner Telemetry Sensor Names**: Cleaned up dynamic stage sensor templates to show user-friendly names (e.g. `Pozostała pojemność: {stage_name}` / `Pozostało dni: {stage_name}` / `Kondycja: {stage_name}`).
+- **Cleaner Telemetry Sensor Names**: Cleaned up dynamic stage sensor templates to show user-friendly names (e.g. `Pozostała pojemność: {stage_name}` / `Pozostało dni: {stage_name}` / `Kondycja: {stage_name}`) and fixed translation loading by removing hardcoded name string fallbacks in `sensor.py`.
+- **Custom Yes/No Binary Sensor States**: Removed PROBLEM device classes from binary sensors (leak, fault, replacement) and mapped custom state translations (Tak/Nie in Polish, Yes/No in English) for clean and localized rendering.
 - **Expanded Cartridge Presets**: Expanded default presets list to support Carbon 1 & 2, Sediment 5um, 10um, & 20um, RO Membrane, and Capillary filters, with localized name translations.
 - **Multi-Step Stage Creation**: Refined preset addition flow to ask for parameters immediately in a details screen, while restricting custom name inputs only to custom/non-standard stages.
+- **Reset Reason Relocation**: Moved the "powód wymiany" (replacement reason) field from global settings directly into the actual stage reset action wizard where it belongs.
 
 ## [5.0.1] - 2026-07-09
 ### Fixed

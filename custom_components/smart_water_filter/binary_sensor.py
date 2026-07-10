@@ -27,7 +27,6 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     SmartWaterBinarySensorEntityDescription(
         key="water_leak_alarm",
         translation_key="water_leak_alarm",
-        device_class=BinarySensorDeviceClass.PROBLEM,
         is_on_fn=lambda data: bool(data["leak_alarm_active"]),
         extra_attributes_fn=lambda data: {
             "severity": data["leak_severity"],
@@ -37,7 +36,6 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     SmartWaterBinarySensorEntityDescription(
         key="sensor_fault",
         translation_key="sensor_fault",
-        device_class=BinarySensorDeviceClass.PROBLEM,
         is_on_fn=lambda data: data["water_sensor_health"] in ("warning", "offline"),
         extra_attributes_fn=lambda data: {
             "time_since_last_pulse_seconds": data["time_since_last_pulse_seconds"]
@@ -47,7 +45,6 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
 
 STAGE_BINARY_DESCRIPTION = BinarySensorEntityDescription(
     key="stage_replace_required",
-    device_class=BinarySensorDeviceClass.PROBLEM,
 )
 
 async def async_setup_entry(

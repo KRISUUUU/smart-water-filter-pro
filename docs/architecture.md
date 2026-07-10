@@ -89,5 +89,8 @@ Configuring, editing, and resetting filter stages is managed dynamically through
 2. **Dynamic Stage Management**:
    - **Adding / Removing Stages**: Performed asynchronously via custom steps which call `coordinator.async_add_filter_stage` and `coordinator.async_remove_filter_stage`, followed by reloading the config entry. The presets are expanded to support common setups (including `carbon_1`, `carbon_2`, `sediment_5um`, `sediment_10um`, `sediment_20um`, `membrana_ro`, and `capillary`).
    - **Editing Stages**: Parameters (volumetric capacity, lifespan limit) are edited directly inside the options flow screens, avoiding individual dashboard number entities.
-   - **Resetting Stages**: Performed within the `reset_stage` flow, where the user selects the stage from a dropdown. Submitting triggers `coordinator.async_reset_filter` with the currently active replacement reason, followed by reloading the config entry to update telemetry.
+   - **Resetting Stages & Reason Selection**: Reset reason selection ("powód wymiany") is prompted contextually inside the reset wizard step itself rather than stored globally. Submitting triggers `coordinator.async_reset_filter` with the selected reason, followed by reloading the config entry.
+3. **Telemetry & Translation Formatting**:
+   - **Clean Sensor Names**: Dynamic stage sensors avoid hardcoded names inside their entity descriptions, enabling correct translation lookups (e.g. `Pozostało dni: węglowy 1` in Polish).
+   - **Custom Binary States (Tak/Nie)**: Binary sensors (leak alarm, sensor fault, replacement alert) omit HA's standard `PROBLEM` device class to render custom state translations (Tak/Nie / Yes/No) natively on the dashboard cards.
 
