@@ -281,3 +281,66 @@ class TestCoordinatorIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(coordinator.flow_engine.current_flow_rate, 0.0)
         # Lifetime total liters should not increase since flow rate was 0.0 during this step
         self.assertEqual(coordinator.lifetime_total_liters, 0.25)
+
+    async def test_coordinator_timezone_aware_last_flow(self) -> None:
+        """Verify coordinator builds timezone-aware last_flow_time datetime objects."""
+        mock_hass = MagicMock()
+        mock_hass.states.get.return_value = None
+        
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_789"
+        mock_entry.title = "Water Filter Timezone"
+        mock_entry.data = {
+            "name": "Smart Water Filter",
+            "source_sensor": "sensor.water_flow_rate",
+            "source_type": "liters",
+            "pulses_per_liter": 1.0,
+        }
+        mock_entry.options = {}
+        
+        coordinator = SmartWaterCoordinator(mock_hass, mock_entry)
+        
+        storage_data = {
+            "stages": [
+                {
+                    "id": "main_filter",
+                    "name": "Main Filter",
+                    "type": "custom",
+                    "capacity_liters": 3000.0,
+                    "used_liters": 0.0,
+                    "installed_date": "2026-07-01T00:00:00",
+                    "baseline_flow_rate": 0.0,
+                    "recent_max_flow_rate": 0.0,
+                    "history": []
+                }
+            ]
+        }
+        async def mock_load():
+            return storage_data
+        
+        coordinator.storage.store.async_load = AsyncMock(side_effect=mock_load)
+        await coordinator.async_setup()
+        
+        # Inject flow rate to set last_flow_time
+        state0 = MagicMock()
+        state0.state = "1.5"
+        
+        t0_time = datetime(2026, 7, 8, 12, 0, 0)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t0_time
+            coordinator._process_source_state(state0)
+            
+        # 1.5 flow for 10 seconds (dt > 0)
+        state1 = MagicMock()
+        state1.state = "1.5"
+        t1_time = datetime(2026, 7, 8, 12, 0, 10)
+        with patch('smart_water_filter.coordinator.datetime') as mock_dt:
+            mock_dt.now.return_value = t1_time
+            coordinator._process_source_state(state1)
+
+        self.assertIsNotNone(coordinator.last_flow_time)
+        data = coordinator._build_coordinator_data()
+        
+        # Check that it's a timezone-aware datetime object (tzinfo is not None)
+        self.assertIsInstance(data["last_flow_time"], datetime)
+        self.assertIsNotNone(data["last_flow_time"].tzinfo)

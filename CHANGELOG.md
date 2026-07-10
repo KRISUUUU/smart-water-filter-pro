@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-07-10
+### Fixed
+- **Sensor Timestamp Bug**: Converted `last_flow_time` from an ISO string to a proper native, timezone-aware Python `datetime` object in `coordinator.py` to prevent HA Timestamp sensor from showing as unavailable.
+- **Leak Alarm Latching & Zero Flow**: Forced leak engine analysis update on zero flow and ensured immediate drop to zero flow clears pending continuous-flow timers (`micro_leak_start`, `high_leak_start`) in `leak_engine.py`.
+- **Calibration Settings**: Configured 1L calibration defaults and lowered pulse delta validation threshold to `1.0` in `config_flow.py`.
+- **Custom Stage Form**: Aligned `add_stage_custom` schema to combine inputs using float coercion.
+
+### Changed
+- **Stage Reset Options Flow**: Removed `SmartWaterStageButton` entity from `button.py` and moved filter resets to options flow step `reset_stage` in `config_flow.py` with dynamic translations.
+- **Hardware Rebranding**: Rebranded "PRO Hardware Tier" references to "ESP32 Ultra-Flow Sentinel Node" across source code and markdown documentation.
+
 ## [5.0.1] - 2026-07-09
 ### Fixed
 - **Direct Liters Flow Processing**: Fixed a critical bug in `coordinator.py` where `SOURCE_TYPE_LITERS` flow rate values (e.g. from ESPHome) were treated as cumulative pulse deltas. Now sets the flow rate directly bypassing the flow engine's cumulative logic.

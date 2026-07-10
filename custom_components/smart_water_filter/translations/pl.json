@@ -68,13 +68,19 @@
       },
       "calibration_start": {
         "title": "Rozpocznij kalibrację",
-        "description": "Przelej dokładnie 5 litrów wody przez czujnik, a następnie naciśnij Dalej."
+        "description": "Przelej dokładnie 1 litr wody przez czujnik, a następnie naciśnij Dalej."
       },
       "calibration_stop": {
         "title": "Zakończ kalibrację",
         "description": "Wprowadź dokładną objętość przelanej wody.",
         "data": {
           "volume_liters": "Objętość wody (litry)"
+        }
+      },
+      "reset_stage": {
+        "title": "Resetuj stopień filtracji",
+        "data": {
+          "stage_id": "Wybierz stopień do zresetowania"
         }
       }
     },
@@ -125,7 +131,8 @@
         "calibrate_sensor": "Kalibruj czujnik przepływu",
         "add_stage": "Dodaj nowy stopień filtracji",
         "remove_stage": "Usuń stopień filtracji",
-        "edit_stage": "Wyświetl/Edytuj stopnie filtracji"
+        "edit_stage": "Wyświetl/Edytuj stopnie filtracji",
+        "reset_stage": "Resetuj stopień filtracji"
       }
     },
     "source_type": {

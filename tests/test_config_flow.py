@@ -124,3 +124,37 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
             max_age_days=365.0
         )
         self.assertEqual(result["type"], "create_entry")
+
+    async def test_options_flow_reset_stage(self) -> None:
+        """Verify options flow reset stage step resets a filter stage and reloads configuration."""
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_123"
+        mock_entry.options = {}
+        
+        flow = SmartWaterOptionsFlow()
+        flow.config_entry = mock_entry
+        flow.hass = MagicMock()
+        flow.hass.config_entries.async_reload = AsyncMock()
+        
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_reset_filter = AsyncMock()
+        mock_coordinator.current_replacement_reason = "routine"
+        
+        # Setup mock stage in filter engine
+        mock_stage = MagicMock()
+        mock_stage.name = "Carbon Stage"
+        mock_stage.type = "carbon"
+        mock_coordinator.filter_engine.stages = {"carbon_stage": mock_stage}
+        
+        flow.hass.data = {DOMAIN: {"test_entry_123": mock_coordinator}}
+        
+        # Test step_reset_stage GET form
+        result = await flow.async_step_reset_stage()
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["step_id"], "reset_stage")
+        
+        # Test step_reset_stage POST selection
+        result2 = await flow.async_step_reset_stage(user_input={"stage_id": "carbon_stage"})
+        mock_coordinator.async_reset_filter.assert_called_once_with("carbon_stage", reason="routine")
+        flow.hass.config_entries.async_reload.assert_called_once_with("test_entry_123")
+        self.assertEqual(result2["type"], "create_entry")

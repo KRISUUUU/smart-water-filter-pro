@@ -1,6 +1,6 @@
 # Physical Hardware & ESPHome Specification
 
-The Smart Water Filter PRO hardware tier relies on an ESP32 microcontroller reading pulses from a YF-S201 Hall-effect flow sensor, computing flow volume, and pushing updates locally to Home Assistant Core.
+The ESP32 Ultra-Flow Sentinel Node hardware tier relies on an ESP32 microcontroller reading pulses from a YF-S201 Hall-effect flow sensor, computing flow volume, and pushing updates locally to Home Assistant Core.
 
 ---
 

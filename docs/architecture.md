@@ -78,3 +78,15 @@ As the integration evolved, the persistent storage JSON structure was upgraded. 
 ## 4. Resource Usage & Execution Guardrails
 - **Debounced Writes**: State saving is throttled or run at logical boundaries (such as midnight, hourly, or when a leak state changes) to protect flash storage (SD cards, SSDs) from write amplification wear.
 - **I/O Offloading**: All JSON serialization and file operations are managed by Home Assistant's helper threads, preventing CPU latency spikes.
+
+---
+
+## 5. Options Flow Management & Stage Lifecycle Control
+
+Configuring and resetting filter stages is managed dynamically through Home Assistant's `OptionsFlow` layer rather than exposing individual device entities (which would clutter the user dashboard).
+
+1. **Step Init**: The entry options configuration menu routes action selections (`sensor_leak_settings`, `calibrate_sensor`, `add_stage`, `remove_stage`, `edit_stage`, and `reset_stage`).
+2. **Dynamic Stage Management**:
+   - **Adding / Removing Stages**: Performed asynchronously via custom steps which call `coordinator.async_add_filter_stage` and `coordinator.async_remove_filter_stage`, followed by reloading the config entry.
+   - **Resetting Stages**: Performed directly within the `reset_stage` flow, where the user selects the stage from a dropdown. Submitting triggers `coordinator.async_reset_filter` with the currently active replacement reason, followed by an immediate reload of the config entry to update the telemetry entity baseline values.
+

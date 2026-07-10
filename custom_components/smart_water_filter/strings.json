@@ -68,13 +68,19 @@
       },
       "calibration_start": {
         "title": "Start Calibration",
-        "description": "Pour exactly 5 liters of water through the sensor, then press Next."
+        "description": "Pour exactly 1 liter of water through the sensor, then press Next."
       },
       "calibration_stop": {
         "title": "Finish Calibration",
         "description": "Input the exact volume of water you poured.",
         "data": {
           "volume_liters": "Water Volume (liters)"
+        }
+      },
+      "reset_stage": {
+        "title": "Reset Filter Stage",
+        "data": {
+          "stage_id": "Select Stage to Reset"
         }
       }
     },
@@ -125,7 +131,8 @@
         "calibrate_sensor": "Calibrate Flow Sensor",
         "add_stage": "Add New Filter Stage",
         "remove_stage": "Remove Filter Stage",
-        "edit_stage": "View/Edit Filter Stages"
+        "edit_stage": "View/Edit Filter Stages",
+        "reset_stage": "Reset Filter Stage"
       }
     },
     "source_type": {

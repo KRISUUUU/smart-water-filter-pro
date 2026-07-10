@@ -3,12 +3,12 @@
 </p>
 
 
-[![Status: Beta | v4.3.1](https://img.shields.io/badge/Status-Beta%20%7C%20v4.3.1-blue.svg)](https://github.com/custom-components/smart_water_filter)
+[![Status: Production | v5.0.0](https://img.shields.io/badge/Status-Production%20%7C%20v5.0.0-green.svg)](https://github.com/custom-components/smart_water_filter)
 [![Platform: ESPHome & Home Assistant Core](https://img.shields.io/badge/Platform-ESPHome%20%26%20Home%20Assistant%20Core-orange.svg)](https://esphome.io)
 [![Architecture: Local-First Monorepo](https://img.shields.io/badge/Architecture-Local--First%20Monorepo-green.svg)](docs/architecture.md)
 
 
-# Smart Water Filter PRO (v4.3.1)
+# Smart Water Filter PRO (v5.0.0)
 
 Smart Water Filter PRO is a production-grade, local-first, event-driven Home Assistant integration designed to monitor and forecast the health, degradation, capacity, and leak parameters of home water filtration systems.
 
@@ -88,7 +88,7 @@ During the initial configuration setup flow, you will be prompted to select the 
 2. **Pulses Mode (`pulses`):**
    Select this **ONLY** if your ESPHome configuration passes a raw, un-calculated pulse counter stream directly to Home Assistant. In this mode, the integration will divide incoming state changes by your specified *Calibration Factor* (e.g., 450.0).
 
-> **Deployment Warning:** Choosing `pulses` while targeting a sensor that already outputs calculated volume (Liters) will result in a **450x under-reporting error** in your analytics and statistics engines. Ensure your hardware tier output aligns with your software ingestion rules.
+> **Deployment Warning:** Choosing `pulses` while targeting a sensor that already outputs calculated volume (Liters) will result in a **450x under-reporting error** in your analytics and statistics engines. Ensure your ESP32 Ultra-Flow Sentinel Node output aligns with your software ingestion rules.
 
 ## HACS Installation Walk-through
 

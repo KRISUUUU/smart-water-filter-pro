@@ -1,11 +1,20 @@
 """Coordinator for Smart Water Filter integration."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
 from typing import Any, Dict, List, Optional
+
+try:
+    from homeassistant.util.dt import as_utc
+except ImportError:
+    def as_utc(dt: datetime) -> datetime:
+        """Convert a naive datetime to a UTC timezone-aware datetime."""
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -162,10 +171,11 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                     pass
 
             if val <= 0.0:
-                if self.current_flow_rate > 0.0:
-                    self.current_flow_rate = 0.0
-                    self.flow_engine.current_flow_rate = 0.0
-                    self.leak_engine.analyze(0.0, now)
+                had_flow = self.current_flow_rate > 0.0
+                self.current_flow_rate = 0.0
+                self.flow_engine.current_flow_rate = 0.0
+                self.leak_engine.analyze(0.0, now)
+                if had_flow:
                     await self.async_save_state()
             else:
                 self.current_flow_rate = val * 1.0
@@ -336,7 +346,7 @@ class SmartWaterCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
                 2
             ),
             "active_time_minutes": round(self.active_time_seconds / 60.0, 1),
-            "last_flow_time": self.last_flow_time.isoformat() if self.last_flow_time else None,
+            "last_flow_time": as_utc(self.last_flow_time) if self.last_flow_time else None,
             
             # Stages mapping
             "stages": stages_dict,

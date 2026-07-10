@@ -37,6 +37,10 @@ class LeakEngine:
 
         flow_rate = float(flow_rate)
 
+        if flow_rate == 0.0:
+            self.micro_leak_start = None
+            self.high_leak_start = None
+
         if self.detection_mode == "disabled":
             self.micro_leak_start = None
             self.high_leak_start = None

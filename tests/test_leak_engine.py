@@ -103,3 +103,16 @@ class TestLeakEngine(unittest.TestCase):
         res = restored_engine.analyze(0.06, self.start_time + timedelta(minutes=31))
         self.assertTrue(res["alarm_active"])
         self.assertEqual(res["severity"], "micro")
+
+    def test_immediate_drop_to_zero_clears_timers(self) -> None:
+        """Verify that dropping to zero flow immediately clears pending timers."""
+        engine = LeakEngine(detection_mode="standard")
+        
+        # Start a micro leak timer
+        engine.analyze(0.06, self.start_time)
+        self.assertIsNotNone(engine.micro_leak_start)
+        
+        # Drop to 0.0 flow -> should clear timers
+        engine.analyze(0.0, self.start_time + timedelta(minutes=5))
+        self.assertIsNone(engine.micro_leak_start)
+        self.assertIsNone(engine.high_leak_start)

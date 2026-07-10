@@ -66,7 +66,7 @@ self._attr_device_info = DeviceInfo(
     identifiers={(DOMAIN, coordinator.entry.entry_id)},
     name="Smart Water Filter PRO",
     manufacturer="KRISUUUU",
-    model="PRO Hardware Tier",
+    model="ESP32 Ultra-Flow Sentinel Node",
     sw_version="5.0.0",
 )
 ```

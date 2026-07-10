@@ -102,6 +102,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_remove_stage()
             elif action == "edit_stage":
                 return await self.async_step_edit_stage()
+            elif action == "reset_stage":
+                return await self.async_step_reset_stage()
 
         # POPRAWKA: Użycie oficjalnego SelectSelector zamiast surowego słownika
         schema = vol.Schema({
@@ -113,6 +115,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                         "add_stage",
                         "remove_stage",
                         "edit_stage",
+                        "reset_stage",
                     ],
                     translation_key="options_action",
                     mode=selector.SelectSelectorMode.DROPDOWN,
@@ -223,7 +226,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             else:
                 delta_pulses = end_pulses
 
-            if volume > 0.05 and delta_pulses > 5.0:
+            if volume > 0.05 and delta_pulses > 1.0:
                 new_factor = round(delta_pulses / volume, 2)
                 coordinator.pulses_per_liter = new_factor
                 coordinator.flow_engine.pulses_per_liter = new_factor
@@ -237,7 +240,7 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=self.config_entry.options)
 
         schema = vol.Schema({
-            vol.Required("volume_liters", default=5.0): vol.Coerce(float),
+            vol.Required("volume_liters", default=1.0): vol.Coerce(float),
         })
 
         return self.async_show_form(step_id="calibration_stop", data_schema=schema)
@@ -307,8 +310,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         default_name = self.temp_stage_name or ""
         schema = vol.Schema({
             vol.Required("name", default=default_name): str,
-            vol.Required("capacity_liters", default=6000): vol.Coerce(int),
-            vol.Required("max_age_days", default=365): vol.Coerce(int),
+            vol.Required("capacity_liters", default=6000.0): vol.Coerce(float),
+            vol.Required("max_age_days", default=365.0): vol.Coerce(float),
         })
 
         return self.async_show_form(step_id="add_stage_custom", data_schema=schema)
@@ -396,3 +399,35 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         })
 
         return self.async_show_form(step_id="edit_stage_details", data_schema=schema)
+
+    async def async_step_reset_stage(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Reset a filter stage."""
+        coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+        if user_input is not None:
+            stage_id = user_input["stage_id"]
+            await coordinator.async_reset_filter(stage_id, reason=coordinator.current_replacement_reason)
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+            return self.async_create_entry(title="", data=self.config_entry.options)
+
+        stages = coordinator.filter_engine.stages
+        if not stages:
+            return self.async_abort(reason="no_stages")
+
+        options = [
+            {"value": sid, "label": f"{localize_stage_name(self.hass, s.name)} ({localize_stage_name(self.hass, s.type)})"}
+            for sid, s in stages.items()
+        ]
+
+        schema = vol.Schema({
+            vol.Required("stage_id"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        })
+
+        return self.async_show_form(step_id="reset_stage", data_schema=schema)
