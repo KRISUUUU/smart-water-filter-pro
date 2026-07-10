@@ -37,7 +37,6 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     SmartWaterBinarySensorEntityDescription(
         key="sensor_fault",
         translation_key="sensor_fault",
-        entity_category=EntityCategory.DIAGNOSTIC,
         is_on_fn=lambda data: data["water_sensor_health"] in ("warning", "offline"),
         extra_attributes_fn=lambda data: {
             "time_since_last_pulse_seconds": data["time_since_last_pulse_seconds"]
