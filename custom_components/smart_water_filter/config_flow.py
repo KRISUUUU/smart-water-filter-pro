@@ -262,7 +262,16 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         schema = vol.Schema({
             vol.Required("preset_type"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=["carbon", "capillary", "sediment", "custom"],
+                    options=[
+                        "carbon_1",
+                        "carbon_2",
+                        "sediment_5um",
+                        "sediment_10um",
+                        "sediment_20um",
+                        "membrana_ro",
+                        "capillary",
+                        "custom",
+                    ],
                     translation_key="preset_type",
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
@@ -277,9 +286,13 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         """Configure capacity and lifespan for a preset stage before adding it."""
         preset = self.temp_preset_type
         defaults = {
-            "carbon": (4000.0, 365.0, "Carbon Filter"),
+            "carbon_1": (4000.0, 365.0, "Carbon Filter 1"),
+            "carbon_2": (4000.0, 365.0, "Carbon Filter 2"),
+            "sediment_5um": (3000.0, 180.0, "Sediment Filter 5um"),
+            "sediment_10um": (3000.0, 180.0, "Sediment Filter 10um"),
+            "sediment_20um": (3000.0, 180.0, "Sediment Filter 20um"),
+            "membrana_ro": (10000.0, 730.0, "RO Membrane"),
             "capillary": (5000.0, 365.0, "Capillary Filter"),
-            "sediment": (3000.0, 180.0, "Sediment Filter"),
         }
         default_cap, default_age, default_name = defaults.get(preset, (3000.0, 365.0, "Filter Stage"))
 

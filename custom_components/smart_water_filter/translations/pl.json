@@ -110,9 +110,9 @@
           "decreasing": "Malejący"
         }
       },
-      "stage_remaining_liters": { "name": "Pozostała pojemność wkładu {stage_name}" },
-      "stage_remaining_days": { "name": "Szacowane dni wkładu {stage_name}" },
-      "stage_health_score": { "name": "Kondycja wkładu {stage_name}" }
+      "stage_remaining_liters": { "name": "Pozostała pojemność: {stage_name}" },
+      "stage_remaining_days": { "name": "Pozostało dni: {stage_name}" },
+      "stage_health_score": { "name": "Kondycja: {stage_name}" }
     },
     "binary_sensor": {
       "water_leak_alarm": { "name": "Alarm wycieku wody" },
@@ -123,11 +123,6 @@
       "clear_alarm": { "name": "Wycisz alarm wycieku" },
       "smart_water_filter_export_backup": { "name": "Eksportuj kopię zapasową" },
       "stage_reset": { "name": "Resetuj wkład {stage_name}" }
-    },
-    "number": {
-      "pulses_per_liter": { "name": "Współczynnik kalibracji czujnika" },
-      "stage_capacity": { "name": "Limit pojemności wkładu {stage_name}" },
-      "stage_max_age": { "name": "Limit wieku wkładu {stage_name}" }
     }
   },
   "selector": {
@@ -165,9 +160,13 @@
     },
     "preset_type": {
       "options": {
-        "carbon": "Wkład węglowy",
-        "capillary": "Wkład kapilarny",
-        "sediment": "Wkład sedymentacyjny",
+        "carbon_1": "węglowy 1",
+        "carbon_2": "węglowy 2",
+        "sediment_5um": "sedymentacyjny 5um",
+        "sediment_10um": "sedymentacyjny 10um",
+        "sediment_20um": "sedymentacyjny 20um",
+        "membrana_ro": "membrana ro",
+        "capillary": "membrana",
         "custom": "Własny stopień filtracji"
       }
     }

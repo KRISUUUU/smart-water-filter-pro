@@ -25,9 +25,15 @@ def localize_stage_name(hass, stage_name: str) -> str:
     lang = getattr(hass.config, "language", "en")
     if lang == "pl":
         mapping = {
-            "Carbon Filter": "Wkład węglowy",
-            "Capillary Filter": "Wkład kapilarny",
-            "Sediment Filter": "Wkład sedymentacyjny",
+            "Carbon Filter 1": "węglowy 1",
+            "Carbon Filter 2": "węglowy 2",
+            "Sediment Filter 5um": "sedymentacyjny 5um",
+            "Sediment Filter 10um": "sedymentacyjny 10um",
+            "Sediment Filter 20um": "sedymentacyjny 20um",
+            "RO Membrane": "membrana ro",
+            "Carbon Filter": "węglowy",
+            "Capillary Filter": "membrana",
+            "Sediment Filter": "sedymentacyjny",
             "Filter Stage": "Stopień filtracji",
             "carbon": "węglowy",
             "capillary": "kapilarny",

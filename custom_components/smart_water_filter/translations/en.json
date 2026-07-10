@@ -110,9 +110,9 @@
           "decreasing": "Decreasing"
         }
       },
-      "stage_remaining_liters": { "name": "{stage_name} water remaining" },
-      "stage_remaining_days": { "name": "{stage_name} estimated days left" },
-      "stage_health_score": { "name": "{stage_name} overall health" }
+      "stage_remaining_liters": { "name": "Remaining capacity: {stage_name}" },
+      "stage_remaining_days": { "name": "Days remaining: {stage_name}" },
+      "stage_health_score": { "name": "Health: {stage_name}" }
     },
     "binary_sensor": {
       "water_leak_alarm": { "name": "Water leak alarm" },
@@ -123,11 +123,6 @@
       "clear_alarm": { "name": "Dismiss leak alarm" },
       "smart_water_filter_export_backup": { "name": "Export pretty backup" },
       "stage_reset": { "name": "Reset {stage_name}" }
-    },
-    "number": {
-      "pulses_per_liter": { "name": "Sensor calibration factor" },
-      "stage_capacity": { "name": "{stage_name} capacity limit" },
-      "stage_max_age": { "name": "{stage_name} lifespan limit" }
     }
   },
   "selector": {
@@ -165,9 +160,13 @@
     },
     "preset_type": {
       "options": {
-        "carbon": "Carbon Filter",
+        "carbon_1": "Carbon Filter 1",
+        "carbon_2": "Carbon Filter 2",
+        "sediment_5um": "Sediment Filter 5µm",
+        "sediment_10um": "Sediment Filter 10µm",
+        "sediment_20um": "Sediment Filter 20µm",
+        "membrana_ro": "RO Membrane",
         "capillary": "Capillary Filter",
-        "sediment": "Sediment Filter",
         "custom": "Custom Filter Stage"
       }
     }

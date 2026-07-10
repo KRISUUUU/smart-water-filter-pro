@@ -112,7 +112,7 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
         
         # Test step 1: post Carbon preset selection
         result1 = await flow.async_step_add_stage(user_input={
-            "preset_type": "carbon"
+            "preset_type": "carbon_1"
         })
         self.assertEqual(result1["type"], "form")
         self.assertEqual(result1["step_id"], "add_stage_preset_details")
@@ -125,8 +125,8 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
         
         # Check coordinator called with adjusted defaults
         mock_coordinator.async_add_filter_stage.assert_called_once_with(
-            name="Carbon Filter",
-            stage_type="carbon",
+            name="Carbon Filter 1",
+            stage_type="carbon_1",
             capacity_liters=4200.0,
             max_age_days=360.0
         )
