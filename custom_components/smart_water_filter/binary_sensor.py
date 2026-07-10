@@ -57,6 +57,16 @@ async def async_setup_entry(
     """Set up Smart Water Filter binary sensors."""
     coordinator: SmartWaterCoordinator = hass.data[DOMAIN][entry.entry_id]
     
+    # Programmatically clear registry cache for sensor_fault category
+    try:
+        from homeassistant.helpers import entity_registry as er
+        ent_reg = er.async_get(hass)
+        entity_id = ent_reg.async_get_entity_id("binary_sensor", DOMAIN, f"{entry.entry_id}_sensor_fault")
+        if entity_id:
+            ent_reg.async_update_entity(entity_id, entity_category=None)
+    except Exception as err:
+        pass
+
     entities: list[BinarySensorEntity] = []
     
     # 1. Register global binary sensors
