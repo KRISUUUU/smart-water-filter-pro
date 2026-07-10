@@ -9,11 +9,12 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, localize_stage_name
 from .entity import SmartWaterBaseEntity
 from .coordinator import SmartWaterCoordinator
 
@@ -36,6 +37,7 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
     SmartWaterBinarySensorEntityDescription(
         key="sensor_fault",
         translation_key="sensor_fault",
+        entity_category=EntityCategory.DIAGNOSTIC,
         is_on_fn=lambda data: data["water_sensor_health"] in ("warning", "offline"),
         extra_attributes_fn=lambda data: {
             "time_since_last_pulse_seconds": data["time_since_last_pulse_seconds"]
@@ -45,6 +47,7 @@ GLOBAL_BINARY_DESCRIPTIONS: list[SmartWaterBinarySensorEntityDescription] = [
 
 STAGE_BINARY_DESCRIPTION = BinarySensorEntityDescription(
     key="stage_replace_required",
+    entity_category=EntityCategory.DIAGNOSTIC,
 )
 
 async def async_setup_entry(
@@ -113,7 +116,9 @@ class SmartWaterStageBinarySensor(SmartWaterBaseEntity, BinarySensorEntity):
         # Override unique ID and translation details
         self._attr_unique_id = f"{coordinator.entry.entry_id}_{stage_id}_replace_required"
         self._attr_translation_key = "stage_replace_required"
-        self._attr_translation_placeholders = {"stage_name": stage_name}
+        self._attr_translation_placeholders = {
+            "stage_name": localize_stage_name(coordinator.hass, stage_name)
+        }
 
     @property
     def is_on(self) -> bool:

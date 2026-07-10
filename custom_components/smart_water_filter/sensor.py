@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    EntityCategory,
     UnitOfTime,
     UnitOfVolume,
 )
@@ -88,16 +89,19 @@ STAGE_SENSOR_DESCRIPTIONS = {
         name=None,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         device_class=SensorDeviceClass.WATER,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "remaining_days": SensorEntityDescription(
         key="stage_remaining_days",
         name=None,
         native_unit_of_measurement=UnitOfTime.DAYS,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "health_score": SensorEntityDescription(
         key="stage_health_score",
         name=None,
         native_unit_of_measurement="%",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 }
 
