@@ -35,8 +35,14 @@
       "add_stage": {
         "title": "Dodaj stopień filtracji",
         "data": {
-          "preset_type": "Wybierz typ wkładu",
-          "name": "Własna nazwa (Opcjonalna dla gotowych wkładów)"
+          "preset_type": "Wybierz typ wkładu"
+        }
+      },
+      "add_stage_preset_details": {
+        "title": "Konfiguracja parametrów wkładu",
+        "data": {
+          "capacity_liters": "Wydajność w litrach",
+          "max_age_days": "Limit czasu (dni)"
         }
       },
       "add_stage_custom": {

@@ -35,8 +35,14 @@
       "add_stage": {
         "title": "Add Filter Stage",
         "data": {
-          "preset_type": "Select Preset Type",
-          "name": "Custom Name (Optional for presets)"
+          "preset_type": "Select Preset Type"
+        }
+      },
+      "add_stage_preset_details": {
+        "title": "Configure Filter Preset",
+        "data": {
+          "capacity_liters": "Volumetric Capacity (liters)",
+          "max_age_days": "Lifespan Limit (days)"
         }
       },
       "add_stage_custom": {

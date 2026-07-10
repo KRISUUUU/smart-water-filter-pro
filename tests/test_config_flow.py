@@ -110,20 +110,63 @@ class TestConfigFlow(unittest.IsolatedAsyncioTestCase):
         mock_coordinator.async_add_filter_stage = AsyncMock()
         flow.hass.data = {DOMAIN: {"test_entry_123": mock_coordinator}}
         
-        # Test post Carbon preset
-        result = await flow.async_step_add_stage(user_input={
-            "preset_type": "carbon",
-            "name": "Custom Carbon"
+        # Test step 1: post Carbon preset selection
+        result1 = await flow.async_step_add_stage(user_input={
+            "preset_type": "carbon"
+        })
+        self.assertEqual(result1["type"], "form")
+        self.assertEqual(result1["step_id"], "add_stage_preset_details")
+        
+        # Test step 2: post custom parameters (capacity/lifespan)
+        result2 = await flow.async_step_add_stage_preset_details(user_input={
+            "capacity_liters": 4200.0,
+            "max_age_days": 360.0
         })
         
-        # Check coordinator called with preset defaults
+        # Check coordinator called with adjusted defaults
         mock_coordinator.async_add_filter_stage.assert_called_once_with(
-            name="Custom Carbon",
+            name="Carbon Filter",
             stage_type="carbon",
-            capacity_liters=4000.0,
-            max_age_days=365.0
+            capacity_liters=4200.0,
+            max_age_days=360.0
         )
-        self.assertEqual(result["type"], "create_entry")
+        self.assertEqual(result2["type"], "create_entry")
+
+    async def test_options_flow_add_custom_stage(self) -> None:
+        """Verify options flow custom stage addition."""
+        mock_entry = MagicMock()
+        mock_entry.entry_id = "test_entry_123"
+        mock_entry.options = {}
+        
+        flow = SmartWaterOptionsFlow()
+        flow.config_entry = mock_entry
+        flow.hass = MagicMock()
+        
+        mock_coordinator = MagicMock()
+        mock_coordinator.async_add_filter_stage = AsyncMock()
+        flow.hass.data = {DOMAIN: {"test_entry_123": mock_coordinator}}
+        
+        # Test step 1: post custom type selection
+        result1 = await flow.async_step_add_stage(user_input={
+            "preset_type": "custom"
+        })
+        self.assertEqual(result1["type"], "form")
+        self.assertEqual(result1["step_id"], "add_stage_custom")
+        
+        # Test step 2: post custom details (name, capacity, lifespan)
+        result2 = await flow.async_step_add_stage_custom(user_input={
+            "name": "Super Custom Filter",
+            "capacity_liters": 7500.0,
+            "max_age_days": 500.0
+        })
+        
+        mock_coordinator.async_add_filter_stage.assert_called_once_with(
+            name="Super Custom Filter",
+            stage_type="custom",
+            capacity_liters=7500.0,
+            max_age_days=500.0
+        )
+        self.assertEqual(result2["type"], "create_entry")
 
     async def test_options_flow_reset_stage(self) -> None:
         """Verify options flow reset stage step resets a filter stage and reloads configuration."""

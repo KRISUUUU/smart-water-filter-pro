@@ -251,29 +251,12 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
         """Add new stage preset step."""
         if user_input is not None:
             preset = user_input["preset_type"]
-            name = user_input.get("name")
+            self.temp_preset_type = preset
             
             if preset == "custom":
-                self.temp_preset_type = preset
-                self.temp_stage_name = name
                 return await self.async_step_add_stage_custom()
             
-            defaults = {
-                "carbon": (4000.0, 365.0, "Carbon Filter"),
-                "capillary": (5000.0, 365.0, "Capillary Filter"),
-                "sediment": (3000.0, 180.0, "Sediment Filter"),
-            }
-            cap, max_age, default_name = defaults.get(preset, (3000.0, 365.0, "Filter Stage"))
-            stage_name = name if name and name.strip() else default_name
-
-            coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
-            await coordinator.async_add_filter_stage(
-                name=stage_name,
-                stage_type=preset,
-                capacity_liters=cap,
-                max_age_days=max_age,
-            )
-            return self.async_create_entry(title="", data=self.config_entry.options)
+            return await self.async_step_add_stage_preset_details()
 
         # POPRAWKA: Selektor dla preset_type
         schema = vol.Schema({
@@ -284,10 +267,41 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            vol.Optional("name"): str,
         })
 
         return self.async_show_form(step_id="add_stage", data_schema=schema)
+
+    async def async_step_add_stage_preset_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure capacity and lifespan for a preset stage before adding it."""
+        preset = self.temp_preset_type
+        defaults = {
+            "carbon": (4000.0, 365.0, "Carbon Filter"),
+            "capillary": (5000.0, 365.0, "Capillary Filter"),
+            "sediment": (3000.0, 180.0, "Sediment Filter"),
+        }
+        default_cap, default_age, default_name = defaults.get(preset, (3000.0, 365.0, "Filter Stage"))
+
+        if user_input is not None:
+            cap = user_input["capacity_liters"]
+            max_age = user_input["max_age_days"]
+
+            coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]
+            await coordinator.async_add_filter_stage(
+                name=default_name,
+                stage_type=preset,
+                capacity_liters=cap,
+                max_age_days=max_age,
+            )
+            return self.async_create_entry(title="", data=self.config_entry.options)
+
+        schema = vol.Schema({
+            vol.Required("capacity_liters", default=default_cap): vol.Coerce(float),
+            vol.Required("max_age_days", default=default_age): vol.Coerce(float),
+        })
+
+        return self.async_show_form(step_id="add_stage_preset_details", data_schema=schema)
 
     async def async_step_add_stage_custom(
         self, user_input: dict[str, Any] | None = None
@@ -307,9 +321,8 @@ class SmartWaterOptionsFlow(config_entries.OptionsFlow):
             )
             return self.async_create_entry(title="", data=self.config_entry.options)
 
-        default_name = self.temp_stage_name or ""
         schema = vol.Schema({
-            vol.Required("name", default=default_name): str,
+            vol.Required("name"): str,
             vol.Required("capacity_liters", default=6000.0): vol.Coerce(float),
             vol.Required("max_age_days", default=365.0): vol.Coerce(float),
         })
