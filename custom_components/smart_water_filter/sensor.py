@@ -89,7 +89,7 @@ STAGE_SENSOR_DESCRIPTIONS = {
         native_unit_of_measurement=UnitOfVolume.LITERS,
         device_class=SensorDeviceClass.WATER,
     ),
-    "estimated_days": SensorEntityDescription(
+    "remaining_days": SensorEntityDescription(
         key="stage_remaining_days",
         name=None,
         native_unit_of_measurement=UnitOfTime.DAYS,
@@ -190,7 +190,7 @@ class SmartWaterStageSensor(SmartWaterBaseEntity, SensorEntity):
         # Mapping metric keys
         if self.metric == "remaining_liters":
             return stage_data.get("remaining_liters")
-        elif self.metric == "estimated_days":
+        elif self.metric == "remaining_days":
             return stage_data.get("estimated_days")
         elif self.metric == "health_score":
             return stage_data.get("health_score")
